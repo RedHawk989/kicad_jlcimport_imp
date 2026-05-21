@@ -554,8 +554,23 @@ def _import_to_library(
         else:
             log(f"  Symbol skipped: {paths['sym_path']} (exists, overwrite=off)")
 
-    # Update lib tables
-    if use_global:
+    # Update lib tables (skipped when imp-kicad-lib is the primary destination —
+    # the project references the __C libraries directly, so a parallel
+    # JLCImport-Imp entry would be redundant).
+    imp_lib_primary = False
+    try:
+        from .imp_lib.discovery import find_imp_lib as _find_imp_lib
+        from .kicad.library import load_config as _load_config_for_skip
+
+        _cfg = _load_config_for_skip()
+        if _cfg.get("imp_lib_enabled", True):
+            imp_lib_primary = bool(_find_imp_lib(lib_dir, fallback_path=_cfg.get("imp_lib_path", "")))
+    except Exception:  # noqa: BLE001
+        imp_lib_primary = False
+
+    if imp_lib_primary:
+        log("imp-lib-primary: skipping project lib-table update (project already references __C libraries)")
+    elif use_global:
         update_global_lib_tables(lib_dir, lib_name, kicad_version=kicad_version)
         log("Global library tables updated.")
     else:
@@ -565,6 +580,7 @@ def _import_to_library(
             log("NOTE: Reopen project for new library tables to take effect.")
 
     # imp-kicad-lib contribution (no-op when the shared library is not detected)
+    contrib = None
     try:
         from .imp_lib import try_contribute
         from .kicad.library import load_config as _load_config
@@ -586,6 +602,23 @@ def _import_to_library(
         log(f"imp-kicad-lib: integration error (ignored): {exc}")
         contrib = None
 
+    # imp-lib primary mode: when the part was successfully contributed to
+    # imp-kicad-lib, the project-local JLCImport library files are redundant
+    # (the project already references the __C libraries via lib tables).  Clean
+    # them up so the user doesn't see a parallel JLCImport library appear.
+    if contrib and contrib.get("status") == "added":
+        try:
+            _cleanup_project_lib_files(
+                lib_dir=lib_dir,
+                lib_name=lib_name,
+                part_name=name,
+                fp_name=fp_name,
+                model_name=model_name,
+                log=log,
+            )
+        except Exception as exc:  # noqa: BLE001
+            log(f"imp-kicad-lib: cleanup of project lib files skipped: {exc}")
+
     return {
         "title": title,
         "name": name,
@@ -593,3 +626,93 @@ def _import_to_library(
         "sym_content": sym_content,
         "imp_lib_result": contrib,
     }
+
+
+def _cleanup_project_lib_files(
+    *,
+    lib_dir: str,
+    lib_name: str,
+    part_name: str,
+    fp_name: str,
+    model_name: str,
+    log: Callable[[str], None],
+) -> None:
+    """Remove the just-imported part from the project-local JLCImport library.
+
+    Called only after a successful imp-kicad-lib contribution.  Deletes:
+    - ``<lib_dir>/<lib_name>.pretty/<fp_name>.kicad_mod``
+    - ``<lib_dir>/<lib_name>.3dshapes/<model_name>.{step,wrl}``
+    - the named symbol entry inside ``<lib_dir>/<lib_name>.kicad_sym``
+
+    If the .kicad_sym file ends up containing no symbols, it is left in place
+    (KiCad accepts an empty kicad_symbol_lib).  Directories are not removed.
+    """
+    paths_removed = []
+
+    fp_path = os.path.join(lib_dir, f"{lib_name}.pretty", f"{fp_name}.kicad_mod")
+    if os.path.isfile(fp_path):
+        try:
+            os.remove(fp_path)
+            paths_removed.append(fp_path)
+        except OSError:
+            pass
+
+    for ext in (".step", ".wrl"):
+        mp = os.path.join(lib_dir, f"{lib_name}.3dshapes", f"{model_name}{ext}")
+        if os.path.isfile(mp):
+            try:
+                os.remove(mp)
+                paths_removed.append(mp)
+            except OSError:
+                pass
+
+    sym_lib_path = os.path.join(lib_dir, f"{lib_name}.kicad_sym")
+    if os.path.isfile(sym_lib_path):
+        if _remove_symbol_block(sym_lib_path, part_name):
+            paths_removed.append(f"{sym_lib_path} (entry: {part_name})")
+
+    if paths_removed:
+        log(f"imp-lib-primary: cleaned up {len(paths_removed)} project-local file(s)")
+
+
+def _remove_symbol_block(sym_lib_path: str, part_name: str) -> bool:
+    """Remove a single ``(symbol "name" ...)`` block from a .kicad_sym file.
+
+    Returns True if a block was removed.
+    """
+    try:
+        with open(sym_lib_path, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return False
+
+    needle = f'(symbol "{part_name}"'
+    start = text.find(needle)
+    if start == -1:
+        return False
+
+    depth = 0
+    i = start
+    while i < len(text):
+        ch = text[i]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+        i += 1
+    else:
+        return False
+
+    # Eat one trailing newline if present
+    if end < len(text) and text[end] == "\n":
+        end += 1
+    new_text = text[:start].rstrip() + "\n" + text[end:].lstrip()
+    # Ensure file still ends with a newline
+    if not new_text.endswith("\n"):
+        new_text += "\n"
+    with open(sym_lib_path, "w", encoding="utf-8") as f:
+        f.write(new_text)
+    return True

@@ -18,5 +18,6 @@ fallback path, freshly-imported parts are:
 """
 
 from .api import try_contribute
+from .remove import find_part, remove_part
 
-__all__ = ["try_contribute"]
+__all__ = ["try_contribute", "remove_part", "find_part"]

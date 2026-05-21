@@ -27,7 +27,7 @@ from .easyeda.api import (
 from .gui.symbol_renderer import has_svg_support, render_svg_bitmap
 from .importer import import_component
 from .kicad.footprint_parser import _parse_kicad_mod
-from .kicad.library import get_global_lib_dir, load_config, save_config
+from .kicad.library import get_global_lib_dir, load_config, sanitize_name, save_config
 from .kicad.version import DEFAULT_KICAD_VERSION, SUPPORTED_VERSIONS
 
 
@@ -1252,7 +1252,9 @@ class _SpinnerOverlay(wx.Window):
 
 class JLCImportImpDialog(wx.Dialog):
     def __init__(self, parent, board, project_dir=None, kicad_version=None, global_lib_dir="", on_close=None):
-        super().__init__(parent, title="JLCImport-Imp", size=(700, 640), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        super().__init__(
+            parent, title="JLCImport-Imp", size=(700, 640), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
+        )
         self.board = board
         self._project_dir = project_dir  # Used when board is None (standalone mode)
         self._kicad_version = kicad_version or DEFAULT_KICAD_VERSION
@@ -1459,7 +1461,15 @@ class JLCImportImpDialog(wx.Dialog):
         self.detail_lcsc_btn = wx.Button(panel, label="LCSC Page")
         self.detail_lcsc_btn.Bind(wx.EVT_BUTTON, self._on_lcsc_page)
         self.detail_lcsc_btn.Disable()
-        btn_sizer.Add(self.detail_lcsc_btn, 0)
+        btn_sizer.Add(self.detail_lcsc_btn, 0, wx.RIGHT, 5)
+        self.detail_remove_btn = wx.Button(panel, label="Remove from library")
+        self.detail_remove_btn.Bind(wx.EVT_BUTTON, self._on_remove_from_imp_lib)
+        self.detail_remove_btn.SetToolTip(
+            "Delete this part's symbol, footprint, and 3D model from imp-kicad-lib "
+            "(any category), then commit + push. Also removes any matching files "
+            "from the project-local JLCImport-Imp library."
+        )
+        btn_sizer.Add(self.detail_remove_btn, 0)
         self._datasheet_url = ""
         self._lcsc_page_url = ""
         info_sizer.Add(btn_sizer, 0)
@@ -2054,6 +2064,7 @@ class JLCImportImpDialog(wx.Dialog):
         self.detail_import_btn.Disable()
         self.detail_datasheet_btn.Disable()
         self.detail_lcsc_btn.Disable()
+        self.detail_remove_btn.Disable()
 
     def _on_result_select(self, event):
         """Select a search result and show details."""
@@ -2090,6 +2101,7 @@ class JLCImportImpDialog(wx.Dialog):
         self.detail_lcsc_btn.SetLabel("SZLCSC Page" if "szlcsc.com" in self._lcsc_page_url else "LCSC Page")
 
         self.detail_import_btn.Enable()
+        self.detail_remove_btn.Enable()
 
         # Fetch image in background
         lcsc_url = r.get("url", "")
@@ -2615,6 +2627,112 @@ class JLCImportImpDialog(wx.Dialog):
     def _show_no_footprint(self):
         """Show a placeholder when footprint preview is unavailable."""
         self.detail_image.SetBitmap(_no_footprint_placeholder(160, not has_svg_support()))
+
+    def _on_remove_from_imp_lib(self, event):
+        """Remove the selected part from imp-kicad-lib and the project lib."""
+        if not self._selected_result:
+            self._log("Error: Select a search result first")
+            return
+        part_name = sanitize_name(self._selected_result.get("model", ""))
+        if not part_name:
+            self._log("Error: cannot determine part name to remove")
+            return
+
+        try:
+            from .imp_lib import find_part as _find_part
+            from .imp_lib.discovery import find_imp_lib as _find_imp_lib
+        except ImportError as exc:
+            self._log(f"imp-kicad-lib: integration unavailable: {exc}")
+            return
+
+        lib_dir = self._get_project_dir() or ""
+        try:
+            cfg = load_config()
+        except Exception:  # noqa: BLE001
+            cfg = {}
+        imp_lib = _find_imp_lib(lib_dir, fallback_path=cfg.get("imp_lib_path", "") if cfg else "")
+        if not imp_lib:
+            self._log("imp-kicad-lib: not detected — nothing to remove")
+            return
+
+        found = _find_part(imp_lib, part_name)
+        total = len(found["symbols"]) + len(found["footprints"]) + len(found["models"])
+        if total == 0:
+            self._log(f"imp-kicad-lib: no files found for '{part_name}'")
+            return
+
+        # Confirmation dialog
+        preview = []
+        for kind in ("symbols", "footprints", "models"):
+            for _d, p in found[kind]:
+                preview.append(os.path.relpath(p, imp_lib))
+        msg = (
+            f"Remove '{part_name}' from imp-kicad-lib?\n\n"
+            f"This will delete {total} file(s) and commit + push to the shared remote:\n\n"
+            + "\n".join(preview[:20])
+            + ("\n…" if len(preview) > 20 else "")
+        )
+        dlg = wx.MessageDialog(self, msg, "Remove from imp-kicad-lib", wx.YES_NO | wx.ICON_WARNING | wx.NO_DEFAULT)
+        try:
+            if dlg.ShowModal() != wx.ID_YES:
+                self._log("Remove cancelled.")
+                return
+        finally:
+            dlg.Destroy()
+
+        self.status_text.Clear()
+        self._main_panel.Disable()
+        self._busy_overlay.show()
+
+        threading.Thread(
+            target=self._remove_worker,
+            args=(part_name, imp_lib, cfg, lib_dir),
+            daemon=True,
+        ).start()
+
+    def _remove_worker(self, part_name, imp_lib, cfg, lib_dir):
+        try:
+            from .imp_lib import remove_part as _remove_part
+
+            result = _remove_part(
+                imp_lib_path=imp_lib,
+                part_name=part_name,
+                config=cfg,
+                log=self._log,
+                auto_push=cfg.get("imp_lib_auto_push", True) if cfg else True,
+            )
+            # Also clean from project-local JLCImport-Imp library if present
+            lib_name = self._lib_name
+            try:
+                from .importer import _cleanup_project_lib_files
+
+                _cleanup_project_lib_files(
+                    lib_dir=lib_dir,
+                    lib_name=lib_name,
+                    part_name=part_name,
+                    fp_name=part_name,
+                    model_name=part_name,
+                    log=self._log,
+                )
+            except Exception as exc:  # noqa: BLE001
+                self._log(f"project lib cleanup skipped: {exc}")
+            wx.CallAfter(self._on_remove_complete, result, part_name)
+        except Exception as exc:  # noqa: BLE001
+            wx.CallAfter(self._on_import_error, f"Remove error: {exc}\n{traceback.format_exc()}")
+
+    def _on_remove_complete(self, result, part_name):
+        if self._closing:
+            return
+        self._busy_overlay.dismiss()
+        self._main_panel.Enable()
+        status = (result or {}).get("status", "error")
+        if status == "removed":
+            n = len(result.get("removed_paths", []))
+            self._log(f"\nRemoved '{part_name}': {n} file(s) deleted from imp-kicad-lib.")
+        else:
+            self._log(f"\nRemove '{part_name}': status={status}")
+        self._refresh_imported_ids()
+        self._repopulate_results()
 
     def _on_import(self, event):
         if not self._selected_result:

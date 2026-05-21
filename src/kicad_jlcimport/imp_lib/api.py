@@ -45,9 +45,10 @@ def try_contribute(
     log(f"imp-kicad-lib: detected at {imp_lib}")
 
     category = categorize(part_name, description, easyeda_category)
-    log(f"imp-kicad-lib: category = {category}")
+    log(f"imp-kicad-lib: auto-category = {category}__C")
 
     if config.get("imp_lib_dedupe", True):
+        log(f"imp-kicad-lib: checking {category}__C and related categories for similar parts...")
         match = find_match(imp_lib, category, description, part_name=part_name)
         if match:
             existing_cat = match.get("category", category)
@@ -62,6 +63,9 @@ def try_contribute(
                 "category": category,
                 "match": match["name"],
             }
+        log("imp-kicad-lib: no similar part found — will contribute as new part")
+    else:
+        log("imp-kicad-lib: dedupe disabled — skipping similarity check")
 
     # Locate the source STEP file that was written by the importer
     step_src = os.path.join(lib_dir, f"{lib_name}.3dshapes", f"{fp_name}.step")
