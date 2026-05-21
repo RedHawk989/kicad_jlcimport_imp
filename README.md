@@ -4,11 +4,15 @@ Fork of [`jvanderberg/kicad_jlcimport`](https://github.com/jvanderberg/kicad_jlc
 
 When this plugin imports a part and detects `imp-kicad-lib` as a git submodule of the active KiCad project (or via a configured fallback path), it:
 
-1. **Categorizes** the part (`Capacitor_SMD__C`, `Basic_Capacitors_Resistors__C`, `Inductor__C`, `LED__C`, `Transistor_FET__C`, `Connector_USB__C`, `Switch__C`, or `to-be-organized`).
-2. **Dedupe-checks** against existing parts. Strict same-spec match — caps must agree on value + voltage (existing ≥ new) + dielectric + size; R/L must agree on value + size. If matched, the import is skipped and the existing part name is reported.
-3. **Reformats** the symbol to match the library's conventions: correct Reference (`R`/`C`/`L`/`D`/`Q`/`SW`/`J`), hides Value on passives, injects a purple `_1_1` text annotation (`100nF/50V/X7R`, `6.8k`, `3.9uH`, `Green LED 0603`), prefixes the Footprint property with `<Category>__C:`.
-4. **Writes** the files into the lib's per-symbol layout (`symbols/<Cat>__C.kicad_symdir/<part>.kicad_sym`, etc.) and rewrites the `.kicad_mod` `(model …)` paths to `../../packages3d/<Cat>__C.3dshapes/<part>.step`.
-5. **Optionally `git add` + `commit` + `push`** to the imp-kicad-lib remote.
+1. **Auto-pulls** the latest `imp-kicad-lib` in the background when the import dialog opens, so dedupe checks run against current state.
+2. **Categorizes** the part (`Capacitor_SMD__C`, `Basic_Capacitors_Resistors__C`, `Inductor__C`, `LED__C`, `Transistor_FET__C`, `Connector_USB__C`, `Switch__C`, or `to-be-organized`).
+3. **Pre-flight similarity check** before download — opens a side-by-side comparison popup of any near matches (same value within 1 %, plus voltage/dielectric/tolerance/size differences flagged). JLC Basic alternatives to Extended parts are highlighted.
+4. **Exact-match dialog** — when the part is identical (same name, same LCSC code via the `(property "LCSC" …)` field, or same parsed spec), shows a dedicated *"Part already in library!"* dialog with `Cancel` (default) or `Import Anyways (overwrite)`.
+5. **Reformats** the symbol to match the library's conventions: correct Reference (`R`/`C`/`L`/`D`/`Q`/`SW`/`J`), hides Value on passives, injects a purple `_1_1` text annotation (`100nF/50V/X7R`, `6.8k`, `3.9uH`, `Green LED 0603`), prefixes the Footprint property with `<Category>__C:`.
+6. **Writes** the files into the lib's per-symbol layout (`symbols/<Cat>__C.kicad_symdir/<part>.kicad_sym`, etc.) and rewrites the `.kicad_mod` `(model …)` paths to `../../packages3d/<Cat>__C.3dshapes/<part>.step`.
+7. **Optionally `git add` + `commit` + `push`** to the imp-kicad-lib remote.
+
+A **Remove from library** button in the dialog deletes a selected part's symbol/footprint/3D files from the shared lib and commits+pushes the removal.
 
 All upstream JLCImport-Imp features (project/global library import, KiCad 8/9/10, CLI, GUI, TUI) are preserved.
 
@@ -51,8 +55,9 @@ Settings live in `jlcimport.json` in your KiCad config directory (`~/.config/kic
 |---|---|---|
 | `imp_lib_enabled` | `true` | Master switch for the imp-kicad-lib integration. Set to `false` to skip the contribution step entirely. |
 | `imp_lib_path` | `""` | Absolute fallback path used when no `.gitmodules` entry pointing at `imp-kicad-lib` can be found by walking up from the project. |
-| `imp_lib_dedupe` | `true` | Block imports of parts whose specs already exist in the shared lib. Disable to import duplicates anyway. |
+| `imp_lib_dedupe` | `true` | Run the same-spec / same-LCSC / same-name check before contributing. When matched, the dialog now offers an *Import Anyways (overwrite)* option instead of silently skipping. |
 | `imp_lib_auto_push` | `true` | After the local commit, attempt `git push`. Push failures are logged but never break the import — the local commit is kept. |
+| `imp_lib_auto_pull` | `true` | Background `git fetch` + `git pull --ff-only` on the shared lib when the dialog opens, so the dedupe check sees the latest state. |
 
 The lib is discovered by:
 
@@ -99,11 +104,19 @@ Text is rendered in purple (`color 163 59 255 1`) at size 1.27, placed above the
 
 ## Recent updates
 
-- `v1.7.1`: rename plugin to `JLCImport-Imp` (PCM listing, ZIP filename).
-- `v1.7.0`: imp-kicad-lib integration — auto-detect submodule, categorize, strict same-spec dedupe, reformat to match lib conventions (`100nF/50V/X7R` annotation, hidden Value, correct Reference), commit + push.
+- `v1.9.3`: match by LCSC C-number even when it only appears inside the `(property "LCSC" …)` field of the `.kicad_sym` (common for connectors whose canonical name is the manufacturer MPN).
+- `v1.9.2`: dedicated *Part already in library!* dialog for exact matches, with `Cancel` (default) / `Import Anyways (overwrite)` choice.
+- `v1.9.1`: fix duplicate / double `__C` entries in the similar-parts popup.
+- `v1.9.0`: generalized side-by-side spec comparison popup (cap / resistor / inductor / LED / FET / connector kinds).
+- `v1.8.7`: MPN-aware capacitor spec parsing — pulls value/voltage/dielectric/tolerance from IEC 60062 codes in the part name when the JLCPCB description lacks them.
+- `v1.8.6`: auto-pull `imp-kicad-lib` in background when the dialog opens.
+- `v1.8.5`–`v1.8.3`: tighter similar-parts popup, JLC Basic-vs-Extended alternative highlighting.
+- `v1.8.2`: similar-parts pre-flight popup before import.
+- `v1.8.1`: fix malformed `(hide yes)` placement when KiCad 10 `Value` properties contain nested parens.
+- `v1.8.0`: imp-lib-primary mode (skip parallel project library), explicit dedupe logging, *Remove from library* button.
+- `v1.7.x`: rename plugin to `JLCImport-Imp`, smarter dedupe, proper `<Cat>__C.kicad_symdir` layout.
+- `v1.7.0`: imp-kicad-lib integration baseline — auto-detect submodule, categorize, dedupe, reformat, commit + push.
 - `v1.6.7` (upstream): normalize tiny EasyEDA geometry residuals to common metric/imperial grids.
-- `v1.6.5` (upstream): global search falls back to a constructed `lcsc.com/product-detail/<code>.html` URL when the JLCPCB API omits `lcscGoodsUrl`.
-- `v1.6.4` (upstream): KiCad 10 `(type "Table")` fp-lib-table indirection support.
 - `v1.4.0` (upstream): KiCad footprint browser with live preview, footprint/3D model renaming, library footprint reuse.
 
 ## Compatibility
@@ -118,7 +131,7 @@ For standalone tools:
 ## Troubleshooting
 
 - **`imp-kicad-lib: not_found`** — the plugin couldn't locate the shared library. Either set up `imp-kicad-lib` as a git submodule of your project (`git submodule add https://github.com/impossible-inc/imp-kicad-lib.git`) or set `imp_lib_path` in the config to an absolute path of a local checkout.
-- **`imp-kicad-lib: SKIPPED — equivalent part X already exists`** — strict dedupe matched an existing part. Use the existing part. To force the import anyway, set `imp_lib_dedupe: false` in the config.
+- **"Part already in library!" dialog** — strict dedupe matched an existing part. Either use the existing part (`Cancel import`), or pick `Import Anyways (overwrite)` to rewrite the lib copy with the new download. To disable the check entirely, set `imp_lib_dedupe: false` in the config.
 - **`imp-kicad-lib: git push failed`** — the local commit was made but couldn't push. Confirm your credentials have write access to the lib's remote, then push manually from the submodule. Set `imp_lib_auto_push: false` to stop attempting.
 - **Windows wxPython preview crash on KiCad 9** — `wx.svg._nanosvg` missing; see [fixes/README.md](fixes/README.md).
 
