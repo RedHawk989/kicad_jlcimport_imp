@@ -48,11 +48,13 @@ def try_contribute(
     log(f"imp-kicad-lib: category = {category}")
 
     if config.get("imp_lib_dedupe", True):
-        match = find_match(imp_lib, category, description)
+        match = find_match(imp_lib, category, description, part_name=part_name)
         if match:
+            existing_cat = match.get("category", category)
+            reason = match.get("reason", "equivalent")
             log(
-                f"imp-kicad-lib: SKIPPED — equivalent part {match['name']} ({match['spec']}) "
-                f"already exists in {category}__C"
+                f"imp-kicad-lib: SKIPPED — {reason}: {match['name']} ({match['spec']}) "
+                f"already exists in {existing_cat}__C"
             )
             return {
                 "status": "duplicate",

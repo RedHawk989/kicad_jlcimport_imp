@@ -13,7 +13,7 @@ class JLCImportPlugin(pcbnew.ActionPlugin):
     _dialog = None
 
     def defaults(self):
-        self.name = "JLCImport"
+        self.name = "JLCImport-Imp"
         self.category = "Import"
         self.description = "Import symbols, footprints, and 3D models from LCSC/EasyEDA"
         self.show_toolbar_button = True

@@ -168,14 +168,13 @@ def _inject_annotation(body: str, part_name: str, label: str, ref: str) -> str:
 
 
 def imp_lib_paths(imp_lib: str, category: str) -> dict:
-    """Return the destination paths inside imp-kicad-lib for ``category``."""
-    if category == "to-be-organized":
-        return {
-            "sym_dir": os.path.join(imp_lib, "to-be-organized", "symbols"),
-            "fp_dir": os.path.join(imp_lib, "to-be-organized", "footprints"),
-            "models_dir": os.path.join(imp_lib, "to-be-organized", "packages3d"),
-            "fp_lib_name": f"to-be-organized_{category}",
-        }
+    """Return the destination paths inside imp-kicad-lib for ``category``.
+
+    All categories — including ``to-be-organized`` — use the standard
+    ``symbols/<Cat>__C.kicad_symdir`` / ``footprints/<Cat>__C.pretty`` /
+    ``packages3d/<Cat>__C.3dshapes`` layout so they are picked up by
+    KiCad via the lib tables.
+    """
     return {
         "sym_dir": os.path.join(imp_lib, "symbols", f"{category}__C.kicad_symdir"),
         "fp_dir": os.path.join(imp_lib, "footprints", f"{category}__C.pretty"),
