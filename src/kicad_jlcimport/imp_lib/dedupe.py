@@ -23,6 +23,40 @@ _DESC_RE = re.compile(r'\(property\s+"Description"\s+"([^"]*)"')
 _NAME_RE = re.compile(r'\(symbol\s+"([^"]+)"')
 _LCSC_RE = re.compile(r"\bC\d{4,}\b")
 
+# Tokens of length >= 3 used for fuzzy "shared family" matching.  Excludes
+# very common short strings.  The list of stop-tokens keeps it from matching
+# every part on words like "smd" / "rohs".
+_TOKEN_RE = re.compile(r"[A-Za-z0-9]{3,}")
+_STOP_TOKENS = {
+    "smd",
+    "smt",
+    "rohs",
+    "mlcc",
+    "the",
+    "and",
+    "with",
+    "for",
+    "esr",
+    "led",
+    "ipc",
+    "lcsc",
+    "yageo",
+    "samsung",
+    "murata",
+    "tdk",
+    "ti",
+    "diodes",
+    "incorporated",
+    "vishay",
+}
+
+
+def _tokenize(text: str) -> set:
+    if not text:
+        return set()
+    return {t.lower() for t in _TOKEN_RE.findall(text) if t.lower() not in _STOP_TOKENS}
+
+
 # When the part's natural category is the key, also dedupe against these
 # sibling categories (where equivalent parts often already live).
 _RELATED = {
@@ -177,15 +211,57 @@ def find_similar(
                             }
                         )
 
-    if not new_spec:
-        for c in candidates:
-            c.pop("_rank", None)
-        return candidates[:max_results]
+    # Decide which categories to scan for spec matches. When the natural
+    # category is "to-be-organized" (or anything not in _RELATED), or the
+    # caller passed no useful category, search ALL category dirs so the popup
+    # still catches obvious near matches.
+    if category in _RELATED:
+        cats = [category] + list(_RELATED[category])
+    elif category and category != "to-be-organized":
+        cats = [category]
+    else:
+        cats = [c for c, _ in _all_category_dirs(imp_lib_path)]
 
-    cats = [category] + list(_RELATED.get(category, ()))
+    # Token-based fallback: any existing part whose name shares a non-trivial
+    # token with the new part (MPN family, package digits) is worth surfacing,
+    # even if specs can't be parsed.
+    new_tokens = _tokenize(part_name) | _tokenize(new_description)
+    for cat in cats:
+        sym_dir = os.path.join(imp_lib_path, "symbols", f"{cat}__C.kicad_symdir")
+        for _path, name, desc in _iter_symbols_in_dir(sym_dir):
+            if any(c["name"] == name and c["category"] == cat for c in candidates):
+                continue
+            tokens = _tokenize(name) | _tokenize(desc)
+            shared = new_tokens & tokens
+            if not shared:
+                continue
+            # Only surface as a token-overlap match when no spec-diff path also
+            # catches it below; we add these last so spec matches still rank first.
+            candidates.append(
+                {
+                    "name": name,
+                    "category": cat,
+                    "description": desc,
+                    "diffs": [f"shared tokens: {', '.join(sorted(shared))[:80]}"],
+                    "tier": category_tier(cat),
+                    "_rank": 10 + 1.0 / max(len(shared), 1),
+                }
+            )
+
+    if not new_spec:
+        # Final cleanup + de-dup by (cat, name) preserving order
+        seen = set()
+        uniq = []
+        for c in sorted(candidates, key=lambda x: x.get("_rank", 99)):
+            key = (c["category"], c["name"])
+            if key in seen:
+                continue
+            seen.add(key)
+            c.pop("_rank", None)
+            uniq.append(c)
+        return uniq[:max_results]
+
     for cat, _path, name, desc in _iter_symbols(imp_lib_path, cats):
-        if any(c["name"] == name and c["category"] == cat for c in candidates):
-            continue
         diffs = _spec_diff(new_spec, desc)
         if diffs is None:
             continue
@@ -210,10 +286,16 @@ def find_similar(
             }
         )
 
-    candidates.sort(key=lambda c: c.get("_rank", 99))
+    # De-dup by (category, name) keeping the best-ranked entry per pair.
+    by_key: dict = {}
     for c in candidates:
+        key = (c["category"], c["name"])
+        if key not in by_key or c.get("_rank", 99) < by_key[key].get("_rank", 99):
+            by_key[key] = c
+    uniq = sorted(by_key.values(), key=lambda c: c.get("_rank", 99))
+    for c in uniq:
         c.pop("_rank", None)
-    return candidates[:max_results]
+    return uniq[:max_results]
 
 
 def _read_desc(sym_path: str) -> str:

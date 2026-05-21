@@ -2769,6 +2769,9 @@ class JLCImportImpDialog(wx.Dialog):
             new_tier = ""
 
         category = categorize(part_name, description, "")
+        self._log(
+            f"imp-kicad-lib: pre-flight check — '{part_name}' ({new_tier or 'unknown tier'}) → category={category}__C"
+        )
         try:
             candidates = find_similar(imp_lib, category, description, part_name=part_name, new_tier=new_tier)
         except Exception as exc:  # noqa: BLE001
@@ -2776,7 +2779,9 @@ class JLCImportImpDialog(wx.Dialog):
             return True
 
         if not candidates:
+            self._log("imp-kicad-lib: no similar parts found — proceeding without popup")
             return True
+        self._log(f"imp-kicad-lib: found {len(candidates)} similar part(s) — showing popup")
 
         has_basic_alt = any(c.get("tier") == "basic" for c in candidates) and new_tier != "basic"
         header_tier = f" [JLC {new_tier.title()}]" if new_tier else ""
