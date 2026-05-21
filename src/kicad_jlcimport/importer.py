@@ -564,4 +564,32 @@ def _import_to_library(
         if newly_created:
             log("NOTE: Reopen project for new library tables to take effect.")
 
-    return {"title": title, "name": name, "fp_content": fp_content, "sym_content": sym_content}
+    # imp-kicad-lib contribution (no-op when the shared library is not detected)
+    try:
+        from .imp_lib import try_contribute
+        from .kicad.library import load_config as _load_config
+
+        contrib_cfg = _load_config()
+        contrib = try_contribute(
+            lib_dir=lib_dir,
+            lib_name=lib_name,
+            part_name=name,
+            fp_name=fp_name,
+            description=(metadata or {}).get("description", ""),
+            sym_content=sym_content or "",
+            fp_content=fp_content,
+            config=contrib_cfg,
+            log=log,
+            easyeda_category=(comp or {}).get("category", "") if isinstance(comp, dict) else "",
+        )
+    except Exception as exc:  # noqa: BLE001 - never block import on shared-lib failure
+        log(f"imp-kicad-lib: integration error (ignored): {exc}")
+        contrib = None
+
+    return {
+        "title": title,
+        "name": name,
+        "fp_content": fp_content,
+        "sym_content": sym_content,
+        "imp_lib_result": contrib,
+    }

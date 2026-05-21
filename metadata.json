@@ -1,25 +1,25 @@
 {
   "$schema": "https://go.kicad.org/pcm/schemas/v1",
-  "name": "JLCImport",
-  "description": "KiCad 8/9/10 plugin to import components from JLCPCB/LCSC",
-  "description_full": "Action plugin for KiCad 8/9/10 that imports symbols, footprints, and 3D models directly from JLCPCB/LCSC into your project or global library.",
-  "identifier": "com.github.jvanderberg.kicad-jlcimport",
+  "name": "JLCImport (imp fork)",
+  "description": "KiCad plugin to import JLCPCB/LCSC parts, auto-contributing to imp-kicad-lib with naming conventions and dedupe.",
+  "description_full": "Fork of jvanderberg/kicad_jlcimport that integrates with the impossible-inc/imp-kicad-lib shared component library: discovers the lib as a project submodule, categorizes parts, reformats symbols to match the lib's conventions (proper Reference, hidden Value, purple _1_1 value annotation), checks for same-spec duplicates before writing, and optionally commits+pushes new parts to the shared library.",
+  "identifier": "com.github.redhawk989.kicad-jlcimport-imp",
   "type": "plugin",
   "author": {
-    "name": "Josh Vanderberg",
+    "name": "RedHawk989",
     "contact": {
-      "web": "https://github.com/jvanderberg"
+      "web": "https://github.com/RedHawk989"
     }
   },
   "license": "MIT",
   "resources": {
-    "homepage": "https://github.com/jvanderberg/kicad_jlcimport",
-    "repository": "https://github.com/jvanderberg/kicad_jlcimport",
-    "issues": "https://github.com/jvanderberg/kicad_jlcimport/issues"
+    "homepage": "https://github.com/RedHawk989/kicad_jlcimport_imp",
+    "repository": "https://github.com/RedHawk989/kicad_jlcimport_imp",
+    "issues": "https://github.com/RedHawk989/kicad_jlcimport_imp/issues"
   },
   "versions": [
     {
-      "version": "1.6.7",
+      "version": "1.7.0",
       "status": "stable",
       "kicad_version": "8.0",
       "runtime": "swig"

@@ -9,7 +9,16 @@ import sys
 
 from .version import DEFAULT_KICAD_VERSION, has_generator_version, symbol_format_version, version_dir_name
 
-_DEFAULT_CONFIG = {"lib_name": "JLCImport", "global_lib_dir": "", "use_global": False}
+_DEFAULT_CONFIG = {
+    "lib_name": "JLCImport",
+    "global_lib_dir": "",
+    "use_global": False,
+    # imp-kicad-lib integration
+    "imp_lib_enabled": True,
+    "imp_lib_path": "",
+    "imp_lib_dedupe": True,
+    "imp_lib_auto_push": True,
+}
 
 
 def _config_path() -> str:
