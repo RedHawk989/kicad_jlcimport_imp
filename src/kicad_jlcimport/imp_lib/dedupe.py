@@ -89,7 +89,10 @@ def _all_category_dirs(imp_lib_path: str) -> list:
     out = []
     for d in os.listdir(sym_root):
         if d.endswith(".kicad_symdir"):
-            out.append((d[: -len(".kicad_symdir")], os.path.join(sym_root, d)))
+            stem = d[: -len(".kicad_symdir")]
+            if stem.endswith("__C"):
+                stem = stem[: -len("__C")]
+            out.append((stem, os.path.join(sym_root, d)))
     return out
 
 
