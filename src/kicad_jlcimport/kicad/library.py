@@ -18,6 +18,7 @@ _DEFAULT_CONFIG = {
     "imp_lib_path": "",
     "imp_lib_dedupe": True,
     "imp_lib_auto_push": True,
+    "imp_lib_auto_pull": True,
 }
 
 

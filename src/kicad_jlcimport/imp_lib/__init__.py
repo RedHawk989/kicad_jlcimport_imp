@@ -21,6 +21,7 @@ from .api import try_contribute
 from .categorize import categorize
 from .dedupe import find_similar
 from .discovery import find_imp_lib
+from .gitops import pull_latest
 from .remove import find_part, remove_part
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "find_similar",
     "find_imp_lib",
     "categorize",
+    "pull_latest",
 ]

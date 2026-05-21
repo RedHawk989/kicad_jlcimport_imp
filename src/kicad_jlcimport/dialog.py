@@ -1557,6 +1557,11 @@ class JLCImportImpDialog(wx.Dialog):
         # Category suggestions popup (owner-drawn for cross-platform compatibility)
         self._category_popup = _CategoryPopup(self, on_select=lambda: self._on_category_selected(None))
 
+        # Auto-pull imp-kicad-lib in the background so the shared library is
+        # fresh by the time the user starts importing.  Failures are quiet —
+        # the popup uses whatever is on disk.
+        wx.CallAfter(self._kick_off_imp_lib_pull)
+
         # --- Gallery panel (hidden by default) ---
         self._gallery_panel = wx.Panel(self)
         self._gallery_panel.Hide()
@@ -2733,6 +2738,34 @@ class JLCImportImpDialog(wx.Dialog):
             self._log(f"\nRemove '{part_name}': status={status}")
         self._refresh_imported_ids()
         self._repopulate_results()
+
+    def _kick_off_imp_lib_pull(self):
+        """Background-fetch imp-kicad-lib so it's up to date before any import."""
+        try:
+            cfg = load_config()
+        except Exception:  # noqa: BLE001
+            cfg = {}
+        if not cfg.get("imp_lib_enabled", True):
+            return
+        if not cfg.get("imp_lib_auto_pull", True):
+            return
+        try:
+            from .imp_lib import find_imp_lib
+        except ImportError:
+            return
+        lib_dir = self._get_project_dir() or ""
+        imp_lib = find_imp_lib(lib_dir, fallback_path=cfg.get("imp_lib_path", ""))
+        if not imp_lib:
+            return
+        threading.Thread(target=self._imp_lib_pull_worker, args=(imp_lib,), daemon=True).start()
+
+    def _imp_lib_pull_worker(self, imp_lib):
+        try:
+            from .imp_lib import pull_latest
+
+            pull_latest(imp_lib, log=lambda m: wx.CallAfter(self._log, m))
+        except Exception as exc:  # noqa: BLE001
+            wx.CallAfter(self._log, f"imp-kicad-lib: auto-pull error (ignored): {exc}")
 
     def _confirm_similar_parts(self, lib_dir: str) -> bool:
         """Check imp-kicad-lib for parts similar to the selected one.
