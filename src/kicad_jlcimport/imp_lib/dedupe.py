@@ -168,11 +168,7 @@ def find_similar(
     sorted by closeness (exact-name and LCSC matches first, then by value
     proximity).  Empty list if nothing is close.
     """
-    new_spec = None
-    for fn in (cap_specs, res_specs, ind_specs):
-        new_spec = fn(new_description)
-        if new_spec:
-            break
+    new_spec = cap_specs(new_description, mpn=part_name) or res_specs(new_description) or ind_specs(new_description)
 
     candidates: list = []
 
@@ -264,7 +260,7 @@ def find_similar(
         return uniq[:max_results]
 
     for cat, _path, name, desc in _iter_symbols(imp_lib_path, cats):
-        diffs = _spec_diff(new_spec, desc)
+        diffs = _spec_diff(new_spec, desc, existing_name=name)
         if diffs is None:
             continue
         value_dist, diff_strs = diffs
@@ -310,14 +306,14 @@ def _read_desc(sym_path: str) -> str:
     return m.group(1) if m else ""
 
 
-def _spec_diff(new_spec: dict, existing_desc: str):
+def _spec_diff(new_spec: dict, existing_desc: str, existing_name: str = ""):
     """Return (value_distance, [diff strings]) for an existing description, or None.
 
     value_distance is 0 if values match exactly, larger as they diverge.
     """
     kind = new_spec["kind"]
     if kind == "C":
-        existing = cap_specs(existing_desc)
+        existing = cap_specs(existing_desc, mpn=existing_name)
         if not existing:
             return None
         diffs = []
@@ -392,11 +388,7 @@ def find_match(
             return {"name": name, "category": cat, "spec": code, "reason": f"same LCSC code {code}"}
 
     # 3) parse new part specs
-    new_spec = None
-    for fn in (cap_specs, res_specs, ind_specs):
-        new_spec = fn(new_description)
-        if new_spec:
-            break
+    new_spec = cap_specs(new_description, mpn=part_name) or res_specs(new_description) or ind_specs(new_description)
     if not new_spec:
         return None
 
@@ -404,7 +396,7 @@ def find_match(
     cats = [category] + list(_RELATED.get(category, ()))
     for cat, _path, name, desc in _iter_symbols(imp_lib_path, cats):
         if new_spec["kind"] == "C":
-            existing = cap_specs(desc)
+            existing = cap_specs(desc, mpn=name)
             if not existing or existing["dielectric"] != new_spec["dielectric"]:
                 continue
             if abs(existing["value_pF"] - new_spec["value_pF"]) / max(new_spec["value_pF"], 1) > 0.005:
