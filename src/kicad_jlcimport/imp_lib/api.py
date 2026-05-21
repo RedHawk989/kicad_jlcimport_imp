@@ -24,6 +24,7 @@ def try_contribute(
     config: dict,
     log: Callable[[str], None] = print,
     easyeda_category: str = "",
+    force_overwrite: bool = False,
 ) -> dict | None:
     """Try to contribute the just-imported part to imp-kicad-lib.
 
@@ -47,7 +48,9 @@ def try_contribute(
     category = categorize(part_name, description, easyeda_category)
     log(f"imp-kicad-lib: auto-category = {category}__C")
 
-    if config.get("imp_lib_dedupe", True):
+    if force_overwrite:
+        log("imp-kicad-lib: force-overwrite requested — bypassing dedupe check")
+    elif config.get("imp_lib_dedupe", True):
         log(f"imp-kicad-lib: checking {category}__C and related categories for similar parts...")
         match = find_match(imp_lib, category, description, part_name=part_name)
         if match:

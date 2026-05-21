@@ -2775,8 +2775,11 @@ class JLCImportImpDialog(wx.Dialog):
         whether to continue with the import anyway.
         """
         r = self._selected_result or {}
+        # Reset force-overwrite each time so a previous import's choice doesn't leak.
+        self._imp_lib_force_overwrite = False
         try:
             from .imp_lib import categorize, find_imp_lib, find_similar
+            from .imp_lib.dedupe import find_match
         except ImportError:
             return True
         try:
@@ -2805,6 +2808,43 @@ class JLCImportImpDialog(wx.Dialog):
         self._log(
             f"imp-kicad-lib: pre-flight check — '{part_name}' ({new_tier or 'unknown tier'}) → category={category}__C"
         )
+
+        # Exact-match check first: if the part is already in the library
+        # (same name / same LCSC / same spec) show a dedicated dialog
+        # offering Cancel (default) or Import Anyways (overwrite).
+        try:
+            exact = find_match(imp_lib, category, description, part_name=part_name)
+        except Exception as exc:  # noqa: BLE001
+            self._log(f"imp-kicad-lib: exact-match check failed (ignored): {exc}")
+            exact = None
+        if exact:
+            self._log(
+                f"imp-kicad-lib: exact match — {exact['name']} in {exact['category']}__C ({exact.get('reason', '')})"
+            )
+            msg = (
+                f"Part already in library!\n\n"
+                f"'{part_name}' is identical to an existing part in imp-kicad-lib:\n\n"
+                f"    {exact['category']}__C : {exact['name']}\n"
+                f"    Reason: {exact.get('reason', 'same spec')}\n\n"
+                f"Cancel the import, or import anyway (overwriting the existing part)?"
+            )
+            dlg = wx.MessageDialog(
+                self,
+                msg,
+                "Part already in library",
+                wx.YES_NO | wx.ICON_INFORMATION | wx.NO_DEFAULT,
+            )
+            try:
+                dlg.SetYesNoLabels("Import Anyways (overwrite)", "Cancel import")
+                if dlg.ShowModal() == wx.ID_YES:
+                    self._imp_lib_force_overwrite = True
+                    self._log("imp-kicad-lib: user chose to overwrite existing part")
+                    return True
+                self._log("imp-kicad-lib: import cancelled at exact-match prompt")
+                return False
+            finally:
+                dlg.Destroy()
+
         try:
             candidates = find_similar(imp_lib, category, description, part_name=part_name, new_tier=new_tier)
         except Exception as exc:  # noqa: BLE001
@@ -3031,4 +3071,5 @@ class JLCImportImpDialog(wx.Dialog):
             search_result=search_result,
             confirm_metadata=confirm_metadata,
             confirm_overwrite=confirm_overwrite,
+            imp_lib_force_overwrite=getattr(self, "_imp_lib_force_overwrite", False),
         )

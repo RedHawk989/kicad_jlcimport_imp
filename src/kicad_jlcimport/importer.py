@@ -112,6 +112,7 @@ def import_component(
     component_data: dict | None = None,
     symbol_kwargs: dict | None = None,
     confirm_reuse_footprint: Callable[[str, str], bool] | None = None,
+    imp_lib_force_overwrite: bool = False,
 ) -> dict | None:
     """Import an LCSC component into a KiCad library or export raw files.
 
@@ -374,6 +375,7 @@ def import_component(
         footprint_ref,
         fp_name=fp_name,
         model_name=model_name,
+        imp_lib_force_overwrite=imp_lib_force_overwrite,
     )
 
 
@@ -473,6 +475,7 @@ def _import_to_library(
     footprint_ref="",
     fp_name=None,
     model_name=None,
+    imp_lib_force_overwrite=False,
 ):
     """Import into KiCad library structure with lib-table updates.
 
@@ -597,6 +600,7 @@ def _import_to_library(
             config=contrib_cfg,
             log=log,
             easyeda_category=(comp or {}).get("category", "") if isinstance(comp, dict) else "",
+            force_overwrite=imp_lib_force_overwrite,
         )
     except Exception as exc:  # noqa: BLE001 - never block import on shared-lib failure
         log(f"imp-kicad-lib: integration error (ignored): {exc}")
