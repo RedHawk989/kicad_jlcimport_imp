@@ -18,6 +18,16 @@ fallback path, freshly-imported parts are:
 """
 
 from .api import try_contribute
+from .categorize import categorize
+from .dedupe import find_similar
+from .discovery import find_imp_lib
 from .remove import find_part, remove_part
 
-__all__ = ["try_contribute", "remove_part", "find_part"]
+__all__ = [
+    "try_contribute",
+    "remove_part",
+    "find_part",
+    "find_similar",
+    "find_imp_lib",
+    "categorize",
+]

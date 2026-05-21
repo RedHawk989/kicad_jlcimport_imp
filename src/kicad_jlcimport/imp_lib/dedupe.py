@@ -96,6 +96,164 @@ def _find_by_lcsc(imp_lib_path: str, lcsc_code: str):
     return None
 
 
+def find_similar(
+    imp_lib_path: str,
+    category: str,
+    new_description: str,
+    part_name: str = "",
+    value_tol: float = 0.05,
+    max_results: int = 12,
+) -> list:
+    """Return a list of NEAR matches in imp-kicad-lib.
+
+    Looser than ``find_match``: tolerates differences in size, voltage,
+    dielectric, tolerance, and value (within ``value_tol``, default 5 %).
+    The target category and any sibling categories are searched.
+
+    Returns a list of dicts::
+
+        {"name": str, "category": str, "description": str, "diffs": [str, ...]}
+
+    sorted by closeness (exact-name and LCSC matches first, then by value
+    proximity).  Empty list if nothing is close.
+    """
+    new_spec = None
+    for fn in (cap_specs, res_specs, ind_specs):
+        new_spec = fn(new_description)
+        if new_spec:
+            break
+
+    candidates: list = []
+
+    # Exact name match anywhere (loud signal — sort to top)
+    if part_name:
+        for cat, sym_dir in _all_category_dirs(imp_lib_path):
+            sym_path = os.path.join(sym_dir, f"{part_name}.kicad_sym")
+            if os.path.isfile(sym_path):
+                desc = _read_desc(sym_path)
+                candidates.append(
+                    {
+                        "name": part_name,
+                        "category": cat,
+                        "description": desc,
+                        "diffs": ["same part name"],
+                        "_rank": 0,
+                    }
+                )
+
+    # LCSC code match anywhere
+    lcsc_codes = set(_LCSC_RE.findall(part_name or "")) | set(_LCSC_RE.findall(new_description or ""))
+    if lcsc_codes:
+        for cat, sym_dir in _all_category_dirs(imp_lib_path):
+            for _path, name, desc in _iter_symbols_in_dir(sym_dir):
+                if any(c in (desc or "") or c in name for c in lcsc_codes):
+                    if not any(c["name"] == name and c["category"] == cat for c in candidates):
+                        candidates.append(
+                            {
+                                "name": name,
+                                "category": cat,
+                                "description": desc,
+                                "diffs": ["same LCSC code"],
+                                "_rank": 1,
+                            }
+                        )
+
+    if not new_spec:
+        for c in candidates:
+            c.pop("_rank", None)
+        return candidates[:max_results]
+
+    cats = [category] + list(_RELATED.get(category, ()))
+    for cat, _path, name, desc in _iter_symbols(imp_lib_path, cats):
+        if any(c["name"] == name and c["category"] == cat for c in candidates):
+            continue
+        diffs = _spec_diff(new_spec, desc)
+        if diffs is None:
+            continue
+        value_dist, diff_strs = diffs
+        if value_dist > value_tol:
+            continue
+        candidates.append(
+            {
+                "name": name,
+                "category": cat,
+                "description": desc,
+                "diffs": diff_strs,
+                "_rank": 2 + value_dist,  # closer values sort earlier
+            }
+        )
+
+    candidates.sort(key=lambda c: c.get("_rank", 99))
+    for c in candidates:
+        c.pop("_rank", None)
+    return candidates[:max_results]
+
+
+def _read_desc(sym_path: str) -> str:
+    try:
+        with open(sym_path, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return ""
+    m = _DESC_RE.search(text)
+    return m.group(1) if m else ""
+
+
+def _spec_diff(new_spec: dict, existing_desc: str):
+    """Return (value_distance, [diff strings]) for an existing description, or None.
+
+    value_distance is 0 if values match exactly, larger as they diverge.
+    """
+    kind = new_spec["kind"]
+    if kind == "C":
+        existing = cap_specs(existing_desc)
+        if not existing:
+            return None
+        diffs = []
+        v_new, v_old = new_spec["value_pF"], existing["value_pF"]
+        dist = abs(v_new - v_old) / max(v_new, 1)
+        if dist > 0.005:
+            diffs.append(f"value {new_spec['label'].split('/')[0]} vs {existing['label'].split('/')[0]}")
+        if existing["voltage"] != new_spec["voltage"]:
+            diffs.append(f"{int(new_spec['voltage'])}V vs {int(existing['voltage'])}V")
+        if existing["dielectric"] != new_spec["dielectric"]:
+            diffs.append(f"{new_spec['dielectric']} vs {existing['dielectric']}")
+        if existing["size"] and new_spec["size"] and existing["size"] != new_spec["size"]:
+            diffs.append(f"size {new_spec['size']} vs {existing['size']}")
+        if not diffs:
+            diffs = ["exact same spec"]
+        return dist, diffs
+    if kind == "R":
+        existing = res_specs(existing_desc)
+        if not existing:
+            return None
+        diffs = []
+        v_new, v_old = new_spec["value_ohm"], existing["value_ohm"]
+        dist = abs(v_new - v_old) / max(v_new, 1e-6)
+        if dist > 0.005:
+            diffs.append(f"value {new_spec['label']} vs {existing['label']}")
+        if existing["size"] and new_spec["size"] and existing["size"] != new_spec["size"]:
+            diffs.append(f"size {new_spec['size']} vs {existing['size']}")
+        if not diffs:
+            diffs = ["exact same spec"]
+        return dist, diffs
+    if kind == "L":
+        existing = ind_specs(existing_desc)
+        if not existing:
+            return None
+        diffs = []
+        v_new, v_old = new_spec["value_nH"], existing["value_nH"]
+        dist = abs(v_new - v_old) / max(v_new, 1e-6)
+        if dist > 0.005:
+            diffs.append(f"value {new_spec['label']} vs {existing['label']}")
+        if existing["size"] and new_spec["size"] and existing["size"] != new_spec["size"]:
+            diffs.append(f"size {new_spec['size']} vs {existing['size']}")
+        if not diffs:
+            diffs = ["exact same spec"]
+        return dist, diffs
+    return None
+
+
 def find_match(
     imp_lib_path: str,
     category: str,

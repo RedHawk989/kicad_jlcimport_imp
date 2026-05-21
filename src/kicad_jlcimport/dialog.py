@@ -2734,6 +2734,67 @@ class JLCImportImpDialog(wx.Dialog):
         self._refresh_imported_ids()
         self._repopulate_results()
 
+    def _confirm_similar_parts(self, lib_dir: str) -> bool:
+        """Check imp-kicad-lib for parts similar to the selected one.
+
+        Returns True if the import should proceed, False to cancel.  When
+        similar parts are found, a modal popup lists them and asks the user
+        whether to continue with the import anyway.
+        """
+        r = self._selected_result or {}
+        try:
+            from .imp_lib import categorize, find_imp_lib, find_similar
+        except ImportError:
+            return True
+        try:
+            cfg = load_config()
+        except Exception:  # noqa: BLE001
+            cfg = {}
+        if not cfg.get("imp_lib_enabled", True):
+            return True
+        imp_lib = find_imp_lib(lib_dir or "", fallback_path=cfg.get("imp_lib_path", ""))
+        if not imp_lib:
+            return True
+
+        part_name = sanitize_name(r.get("model", "") or "")
+        description = r.get("description", "") or ""
+        category = categorize(part_name, description, "")
+        try:
+            candidates = find_similar(imp_lib, category, description, part_name=part_name)
+        except Exception as exc:  # noqa: BLE001
+            self._log(f"imp-kicad-lib: similar-parts check failed (ignored): {exc}")
+            return True
+
+        if not candidates:
+            return True
+
+        lines = [
+            f"You are about to import '{part_name}' ({description}).",
+            "",
+            f"imp-kicad-lib already contains {len(candidates)} similar part(s):",
+            "",
+        ]
+        for c in candidates:
+            diff = ", ".join(c.get("diffs", []) or ["near match"])
+            lines.append(f"  • {c['category']}__C : {c['name']}")
+            lines.append(f"      {c.get('description', '')}")
+            lines.append(f"      differences: {diff}")
+            lines.append("")
+        lines.append("Import this new part anyway?")
+        msg = "\n".join(lines)
+
+        dlg = wx.MessageDialog(
+            self,
+            msg,
+            "Similar parts found in imp-kicad-lib",
+            wx.YES_NO | wx.ICON_QUESTION | wx.NO_DEFAULT,
+        )
+        try:
+            dlg.SetYesNoLabels("Import anyway", "Cancel import")
+            return dlg.ShowModal() == wx.ID_YES
+        finally:
+            dlg.Destroy()
+
     def _on_import(self, event):
         if not self._selected_result:
             self._log("Error: Select a search result first")
@@ -2749,6 +2810,11 @@ class JLCImportImpDialog(wx.Dialog):
             if not lib_dir:
                 self._log("Error: No board file open. Use Global destination or open a board.")
                 return
+
+        # Pre-flight: warn user if similar parts already exist in imp-kicad-lib
+        if not self._confirm_similar_parts(lib_dir):
+            self._log("Import cancelled by user.")
+            return
 
         self.status_text.Clear()
         self._main_panel.Disable()
