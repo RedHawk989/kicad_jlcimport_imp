@@ -133,16 +133,32 @@ def _extract_symbol_block(text: str, part_name: str) -> str | None:
 
 
 def _hide_value(body: str) -> str:
-    m = _PROP_VALUE_RE.search(body)
-    if not m:
+    """Insert ``(hide yes)`` inside the Value property if not already present.
+
+    Walks parentheses depth-aware so it works on KiCad 10 properties that
+    contain nested ``(at …)`` / ``(effects …)`` blocks.
+    """
+    idx = body.find('(property "Value"')
+    if idx < 0:
         return body
-    inner = m.group(2)
-    if "(hide yes)" in inner or "hide yes" in inner:
+    depth = 0
+    end = -1
+    for i in range(idx, len(body)):
+        ch = body[i]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    if end < 0:
         return body
-    # Insert (hide yes) just before the closing paren of the property
-    full = m.group(0)
-    new = full[:-1] + "\n\t\t(hide yes)\n\t)"
-    return body[: m.start()] + new + body[m.end() :]
+    block = body[idx : end + 1]
+    if "(hide yes)" in block or "hide yes" in block:
+        return body
+    new_block = block[:-1].rstrip() + "\n\t\t(hide yes)\n\t)"
+    return body[:idx] + new_block + body[end + 1 :]
 
 
 def _inject_annotation(body: str, part_name: str, label: str, ref: str) -> str:
