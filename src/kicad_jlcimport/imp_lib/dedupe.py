@@ -151,8 +151,8 @@ def find_similar(
     category: str,
     new_description: str,
     part_name: str = "",
-    value_tol: float = 0.05,
-    max_results: int = 12,
+    value_tol: float = 0.01,
+    max_results: int = 3,
     new_tier: str = "",
 ) -> list:
     """Return a list of NEAR matches in imp-kicad-lib.
@@ -222,31 +222,33 @@ def find_similar(
     else:
         cats = [c for c, _ in _all_category_dirs(imp_lib_path)]
 
-    # Token-based fallback: any existing part whose name shares a non-trivial
-    # token with the new part (MPN family, package digits) is worth surfacing,
-    # even if specs can't be parsed.
-    new_tokens = _tokenize(part_name) | _tokenize(new_description)
-    for cat in cats:
-        sym_dir = os.path.join(imp_lib_path, "symbols", f"{cat}__C.kicad_symdir")
-        for _path, name, desc in _iter_symbols_in_dir(sym_dir):
-            if any(c["name"] == name and c["category"] == cat for c in candidates):
-                continue
-            tokens = _tokenize(name) | _tokenize(desc)
-            shared = new_tokens & tokens
-            if not shared:
-                continue
-            # Only surface as a token-overlap match when no spec-diff path also
-            # catches it below; we add these last so spec matches still rank first.
-            candidates.append(
-                {
-                    "name": name,
-                    "category": cat,
-                    "description": desc,
-                    "diffs": [f"shared tokens: {', '.join(sorted(shared))[:80]}"],
-                    "tier": category_tier(cat),
-                    "_rank": 10 + 1.0 / max(len(shared), 1),
-                }
-            )
+    # Token-based fallback: only used when we couldn't parse a spec for the
+    # new part (so spec matching can't catch identical parts). Without this
+    # guard, importing a 22nF cap was surfacing dozens of unrelated caps that
+    # merely shared the package size token.
+    if not new_spec:
+        new_tokens = _tokenize(part_name) | _tokenize(new_description)
+        for cat in cats:
+            sym_dir = os.path.join(imp_lib_path, "symbols", f"{cat}__C.kicad_symdir")
+            for _path, name, desc in _iter_symbols_in_dir(sym_dir):
+                if any(c["name"] == name and c["category"] == cat for c in candidates):
+                    continue
+                tokens = _tokenize(name) | _tokenize(desc)
+                shared = new_tokens & tokens
+                # Require at least 2 shared tokens to count as a meaningful
+                # match — single-token overlaps (e.g. just "0402") are noise.
+                if len(shared) < 2:
+                    continue
+                candidates.append(
+                    {
+                        "name": name,
+                        "category": cat,
+                        "description": desc,
+                        "diffs": [f"shared tokens: {', '.join(sorted(shared))[:80]}"],
+                        "tier": category_tier(cat),
+                        "_rank": 10 + 1.0 / max(len(shared), 1),
+                    }
+                )
 
     if not new_spec:
         # Final cleanup + de-dup by (cat, name) preserving order
