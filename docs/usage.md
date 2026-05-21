@@ -4,12 +4,12 @@ This guide keeps the practical setup and command details that do not fit well in
 
 ## Install In KiCad (PCM ZIP)
 
-1. Download `JLCImport-vX.X.X.zip` from [Releases](https://github.com/jvanderberg/kicad_jlcimport/releases).
+1. Download `JLCImport-Imp-vX.X.X.zip` from [Releases](https://github.com/jvanderberg/kicad_jlcimport/releases).
 2. In KiCad, open `Tools > Plugin and Content Manager`.
 3. Click `Install from File...`.
 4. Select the ZIP and apply pending changes.
 
-Use the packaged `JLCImport-vX.X.X.zip`, not the auto-generated source archive.
+Use the packaged `JLCImport-Imp-vX.X.X.zip`, not the auto-generated source archive.
 
 ## Manual Install (Dev Workflow)
 
@@ -31,7 +31,7 @@ Restart KiCad after install.
 
 ## Plugin Workflow
 
-Open `PCB Editor > Tools > External Plugins > JLCImport`.
+Open `PCB Editor > Tools > External Plugins > JLCImport-Imp`.
 
 1. Search by keyword or LCSC part number.
 2. Filter results by part type and stock.

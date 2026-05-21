@@ -72,15 +72,15 @@ class TestDialogStickyDestination:
         """When config has use_global=True and project dir exists, Global is selected."""
         monkeypatch.setattr(
             "kicad_jlcimport.dialog.load_config",
-            lambda: {"lib_name": "JLCImport", "global_lib_dir": "", "use_global": True},
+            lambda: {"lib_name": "JLCImport-Imp", "global_lib_dir": "", "use_global": True},
         )
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dest_project = MagicMock()
         dest_global = MagicMock()
         dlg = SimpleNamespace(dest_project=dest_project, dest_global=dest_global)
 
-        JLCImportDialog._apply_saved_destination(dlg, "/some/project")
+        JLCImportImpDialog._apply_saved_destination(dlg, "/some/project")
 
         dest_global.SetValue.assert_called_with(True)
 
@@ -88,15 +88,15 @@ class TestDialogStickyDestination:
         """When config has use_global=False and project dir exists, Project is selected."""
         monkeypatch.setattr(
             "kicad_jlcimport.dialog.load_config",
-            lambda: {"lib_name": "JLCImport", "global_lib_dir": "", "use_global": False},
+            lambda: {"lib_name": "JLCImport-Imp", "global_lib_dir": "", "use_global": False},
         )
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dest_project = MagicMock()
         dest_global = MagicMock()
         dlg = SimpleNamespace(dest_project=dest_project, dest_global=dest_global)
 
-        JLCImportDialog._apply_saved_destination(dlg, "/some/project")
+        JLCImportImpDialog._apply_saved_destination(dlg, "/some/project")
 
         dest_project.SetValue.assert_called_with(True)
 
@@ -104,15 +104,15 @@ class TestDialogStickyDestination:
         """Even if use_global=False, Global is forced when no project dir."""
         monkeypatch.setattr(
             "kicad_jlcimport.dialog.load_config",
-            lambda: {"lib_name": "JLCImport", "global_lib_dir": "", "use_global": False},
+            lambda: {"lib_name": "JLCImport-Imp", "global_lib_dir": "", "use_global": False},
         )
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dest_project = MagicMock()
         dest_global = MagicMock()
         dlg = SimpleNamespace(dest_project=dest_project, dest_global=dest_global)
 
-        JLCImportDialog._apply_saved_destination(dlg, "")
+        JLCImportImpDialog._apply_saved_destination(dlg, "")
 
         dest_project.Disable.assert_called_once()
         dest_global.SetValue.assert_called_with(True)
@@ -122,15 +122,15 @@ class TestDialogStickyDestination:
         saved = {}
         monkeypatch.setattr(
             "kicad_jlcimport.dialog.load_config",
-            lambda: {"lib_name": "JLCImport", "global_lib_dir": "", "use_global": False},
+            lambda: {"lib_name": "JLCImport-Imp", "global_lib_dir": "", "use_global": False},
         )
         monkeypatch.setattr("kicad_jlcimport.dialog.save_config", lambda c: saved.update(c))
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dlg = SimpleNamespace(dest_global=MagicMock())
         dlg.dest_global.GetValue.return_value = True
 
-        JLCImportDialog._persist_destination(dlg)
+        JLCImportImpDialog._persist_destination(dlg)
 
         assert saved["use_global"] is True
 
@@ -139,21 +139,21 @@ class TestDialogStickyDestination:
         saved = {}
         monkeypatch.setattr(
             "kicad_jlcimport.dialog.load_config",
-            lambda: {"lib_name": "JLCImport", "global_lib_dir": "", "use_global": True},
+            lambda: {"lib_name": "JLCImport-Imp", "global_lib_dir": "", "use_global": True},
         )
         monkeypatch.setattr("kicad_jlcimport.dialog.save_config", lambda c: saved.update(c))
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dlg = SimpleNamespace(dest_global=MagicMock())
         dlg.dest_global.GetValue.return_value = False
 
-        JLCImportDialog._persist_destination(dlg)
+        JLCImportImpDialog._persist_destination(dlg)
 
         assert saved["use_global"] is False
 
     def test_dialog_does_not_persist_on_import_failure(self, monkeypatch):
         """A failed import should not persist the destination preference."""
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dlg = SimpleNamespace(
             _closing=False,
@@ -163,7 +163,7 @@ class TestDialogStickyDestination:
             _persist_destination=MagicMock(),
         )
 
-        JLCImportDialog._on_import_error(dlg, "import failed")
+        JLCImportImpDialog._on_import_error(dlg, "import failed")
 
         dlg._persist_destination.assert_not_called()
 
@@ -176,45 +176,45 @@ class TestTUIStickyDestination:
         """TUI app reads use_global from config on construction."""
         monkeypatch.setattr(
             "kicad_jlcimport.tui.app.load_config",
-            lambda: {"lib_name": "JLCImport", "use_global": True},
+            lambda: {"lib_name": "JLCImport-Imp", "use_global": True},
         )
         monkeypatch.setattr(
             "kicad_jlcimport.tui.app.get_global_lib_dir",
             lambda _v: str(tmp_path),
         )
-        from kicad_jlcimport.tui.app import JLCImportTUI
+        from kicad_jlcimport.tui.app import JLCImportImpTUI
 
-        app = JLCImportTUI()
+        app = JLCImportImpTUI()
         assert app._use_global is True
 
     def test_tui_constructor_defaults_use_global_false(self, tmp_path, monkeypatch):
         """TUI app defaults use_global to False when not in config."""
         monkeypatch.setattr(
             "kicad_jlcimport.tui.app.load_config",
-            lambda: {"lib_name": "JLCImport"},
+            lambda: {"lib_name": "JLCImport-Imp"},
         )
         monkeypatch.setattr(
             "kicad_jlcimport.tui.app.get_global_lib_dir",
             lambda _v: str(tmp_path),
         )
-        from kicad_jlcimport.tui.app import JLCImportTUI
+        from kicad_jlcimport.tui.app import JLCImportImpTUI
 
-        app = JLCImportTUI()
+        app = JLCImportImpTUI()
         assert app._use_global is False
 
     def test_tui_compose_uses_saved_global_preference(self, tmp_path, monkeypatch):
         """When use_global=True in config and project dir available, global radio is selected."""
         monkeypatch.setattr(
             "kicad_jlcimport.tui.app.load_config",
-            lambda: {"lib_name": "JLCImport", "use_global": True},
+            lambda: {"lib_name": "JLCImport-Imp", "use_global": True},
         )
         monkeypatch.setattr(
             "kicad_jlcimport.tui.app.get_global_lib_dir",
             lambda _v: str(tmp_path),
         )
-        from kicad_jlcimport.tui.app import JLCImportTUI
+        from kicad_jlcimport.tui.app import JLCImportImpTUI
 
-        app = JLCImportTUI(project_dir="/some/project")
+        app = JLCImportImpTUI(project_dir="/some/project")
         # _use_global should be True, meaning global radio should be initially selected
         assert app._use_global is True
 
@@ -222,15 +222,15 @@ class TestTUIStickyDestination:
         """Even if use_global=False in config, global is selected when no project dir."""
         monkeypatch.setattr(
             "kicad_jlcimport.tui.app.load_config",
-            lambda: {"lib_name": "JLCImport", "use_global": False},
+            lambda: {"lib_name": "JLCImport-Imp", "use_global": False},
         )
         monkeypatch.setattr(
             "kicad_jlcimport.tui.app.get_global_lib_dir",
             lambda _v: str(tmp_path),
         )
-        from kicad_jlcimport.tui.app import JLCImportTUI
+        from kicad_jlcimport.tui.app import JLCImportImpTUI
 
-        app = JLCImportTUI()  # no project_dir
+        app = JLCImportImpTUI()  # no project_dir
         # _use_global is False but _select_global in compose() should be True
         # because self._project_dir is empty
         assert app._use_global is False
@@ -241,7 +241,7 @@ class TestTUIStickyDestination:
         saved = {}
         monkeypatch.setattr(
             "kicad_jlcimport.tui.app.load_config",
-            lambda: {"lib_name": "JLCImport", "use_global": False},
+            lambda: {"lib_name": "JLCImport-Imp", "use_global": False},
         )
         monkeypatch.setattr(
             "kicad_jlcimport.tui.app.save_config",
@@ -251,10 +251,10 @@ class TestTUIStickyDestination:
             "kicad_jlcimport.tui.app.get_global_lib_dir",
             lambda _v: str(tmp_path),
         )
-        from kicad_jlcimport.tui.app import JLCImportTUI
+        from kicad_jlcimport.tui.app import JLCImportImpTUI
 
-        app = JLCImportTUI()
-        JLCImportTUI._persist_destination(app, use_global=True)
+        app = JLCImportImpTUI()
+        JLCImportImpTUI._persist_destination(app, use_global=True)
 
         assert saved["use_global"] is True
 
@@ -263,7 +263,7 @@ class TestTUIStickyDestination:
         saved = {}
         monkeypatch.setattr(
             "kicad_jlcimport.tui.app.load_config",
-            lambda: {"lib_name": "JLCImport", "use_global": False},
+            lambda: {"lib_name": "JLCImport-Imp", "use_global": False},
         )
         monkeypatch.setattr(
             "kicad_jlcimport.tui.app.save_config",
@@ -277,13 +277,13 @@ class TestTUIStickyDestination:
             "kicad_jlcimport.tui.app.import_component",
             MagicMock(side_effect=Exception("import failed")),
         )
-        from kicad_jlcimport.tui.app import JLCImportTUI
+        from kicad_jlcimport.tui.app import JLCImportImpTUI
 
-        app = JLCImportTUI()
+        app = JLCImportImpTUI()
 
         # _do_import should raise, so _persist_destination should not be reached
         try:
-            JLCImportTUI._do_import(app, "C427602", str(tmp_path), True, 9)
+            JLCImportImpTUI._do_import(app, "C427602", str(tmp_path), True, 9)
         except Exception:
             pass
 

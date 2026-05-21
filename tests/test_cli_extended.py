@@ -648,7 +648,7 @@ class TestMain:
         monkeypatch.setattr(sys, "argv", ["jlcimport"])
         cli.main()
         out = capsys.readouterr().out
-        assert "JLCImport CLI" in out or "usage" in out.lower()
+        assert "JLCImport-Imp CLI" in out or "usage" in out.lower()
 
     def test_main_search_command(self, monkeypatch, capsys):
         monkeypatch.setattr("kicad_jlcimport.kicad.library.save_config", lambda _: None)

@@ -118,7 +118,7 @@ def import_component(
     Args:
         lcsc_id: Validated LCSC part number (e.g. "C427602").
         lib_dir: Destination directory (project dir, global lib dir, or export dir).
-        lib_name: Library name (e.g. "JLCImport").
+        lib_name: Library name (e.g. "JLCImport-Imp").
         overwrite: Whether to overwrite existing files.
         use_global: If True, use absolute model paths and update global lib tables.
         export_only: If True, write raw .kicad_mod/.kicad_sym/3D files to a flat directory.
@@ -429,7 +429,7 @@ def _export_only(
         sym_path = os.path.join(out_dir, f"{name}.kicad_sym")
         sym_lib = "(kicad_symbol_lib\n"
         sym_lib += f"  (version {symbol_format_version(kicad_version)})\n"
-        sym_lib += '  (generator "JLCImport")\n'
+        sym_lib += '  (generator "JLCImport-Imp")\n'
         if has_generator_version(kicad_version):
             sym_lib += '  (generator_version "1.0")\n'
         sym_lib += sym_content + ")\n"

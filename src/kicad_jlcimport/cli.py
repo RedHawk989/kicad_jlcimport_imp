@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI tool for testing JLCImport search and import."""
+"""CLI tool for testing JLCImport-Imp search and import."""
 
 import argparse
 import os
@@ -203,7 +203,7 @@ def cmd_import(args):
 def main():
     parser = argparse.ArgumentParser(
         prog="jlcimport-cli",
-        description="JLCImport CLI - search and test LCSC component imports",
+        description="JLCImport-Imp CLI - search and test LCSC component imports",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 examples:
@@ -268,8 +268,8 @@ examples:
     )
     ip.add_argument(
         "--lib-name",
-        default=load_config().get("lib_name", "JLCImport"),
-        help="Library name (default: from config or 'JLCImport')",
+        default=load_config().get("lib_name", "JLCImport-Imp"),
+        help="Library name (default: from config or 'JLCImport-Imp')",
     )
     ip.add_argument(
         "--kicad-version",

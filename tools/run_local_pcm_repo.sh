@@ -6,7 +6,7 @@ CLEAN_INSTALL="1"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 BUILD_ID="$(date +%s)"
-ZIP_NAME="JLCImport-dev-${BUILD_ID}.zip"
+ZIP_NAME="JLCImport-Imp-dev-${BUILD_ID}.zip"
 
 print_usage() {
   cat <<EOF
@@ -66,7 +66,7 @@ if [[ "${CLEAN_INSTALL}" == "1" ]]; then
 fi
 
 # Remove stale dev ZIPs so the HTTP server only has the fresh build
-rm -f dist/JLCImport-dev-*.zip dist/packages.json dist/repository.json dist/resources.zip
+rm -f dist/JLCImport-Imp-dev-*.zip dist/packages.json dist/repository.json dist/resources.zip
 
 "${PYTHON_BIN}" tools/build_pcm.py \
   --zip-name "${ZIP_NAME}" \
@@ -83,7 +83,7 @@ In KiCad:
 2. Open repository settings
 3. Add this URL:
    http://localhost:${PORT}/repository.json
-4. Refresh repositories and install JLCImport
+4. Refresh repositories and install JLCImport-Imp
 
 Serving dist/ at http://localhost:${PORT}
 ZIP URL: http://localhost:${PORT}/${ZIP_NAME}

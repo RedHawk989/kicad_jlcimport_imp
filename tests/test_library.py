@@ -173,12 +173,12 @@ class TestUpdateLibTable:
     def test_creates_new_table(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             table_path = os.path.join(tmpdir, "sym-lib-table")
-            result = _update_lib_table(table_path, "sym_lib_table", "JLCImport", "KiCad", "/path/to/lib.kicad_sym")
+            result = _update_lib_table(table_path, "sym_lib_table", "JLCImport-Imp", "KiCad", "/path/to/lib.kicad_sym")
             assert result is True
             with open(table_path) as f:
                 text = f.read()
             assert "(sym_lib_table" in text
-            assert '(name "JLCImport")' in text
+            assert '(name "JLCImport-Imp")' in text
             assert '(uri "/path/to/lib.kicad_sym")' in text
 
     def test_appends_to_existing(self):
@@ -186,21 +186,21 @@ class TestUpdateLibTable:
             table_path = os.path.join(tmpdir, "sym-lib-table")
             with open(table_path, "w") as f:
                 f.write("(sym_lib_table\n  (version 7)\n)\n")
-            result = _update_lib_table(table_path, "sym_lib_table", "JLCImport", "KiCad", "/path/to/lib")
+            result = _update_lib_table(table_path, "sym_lib_table", "JLCImport-Imp", "KiCad", "/path/to/lib")
             assert result is False
             with open(table_path) as f:
                 text = f.read()
-            assert '(name "JLCImport")' in text
+            assert '(name "JLCImport-Imp")' in text
 
     def test_skip_if_already_present(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             table_path = os.path.join(tmpdir, "sym-lib-table")
-            _update_lib_table(table_path, "sym_lib_table", "JLCImport", "KiCad", "/path")
+            _update_lib_table(table_path, "sym_lib_table", "JLCImport-Imp", "KiCad", "/path")
             # Read content after first add
             with open(table_path) as f:
                 text1 = f.read()
             # Try adding again
-            _update_lib_table(table_path, "sym_lib_table", "JLCImport", "KiCad", "/path")
+            _update_lib_table(table_path, "sym_lib_table", "JLCImport-Imp", "KiCad", "/path")
             with open(table_path) as f:
                 text2 = f.read()
             assert text1 == text2  # No change
@@ -342,4 +342,4 @@ class TestAddSymbolToLibVersions:
                 text = f.read()
             assert "(version 20231120)" in text
             assert "generator_version" not in text
-            assert '(generator "JLCImport")' in text
+            assert '(generator "JLCImport-Imp")' in text

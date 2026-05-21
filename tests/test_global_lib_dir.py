@@ -33,7 +33,7 @@ def test_tui_entry_validates_nonexistent_dir(tmp_path, monkeypatch, capsys):
         "sys.argv",
         ["prog", "--global-lib-dir", bad_path],
     )
-    with patch("kicad_jlcimport.tui.app.JLCImportTUI"):
+    with patch("kicad_jlcimport.tui.app.JLCImportImpTUI"):
         with pytest.raises(SystemExit) as exc_info:
             from kicad_jlcimport.tui import main
 
@@ -45,13 +45,13 @@ def test_tui_entry_validates_nonexistent_dir(tmp_path, monkeypatch, capsys):
 
 @needs_textual
 def test_tui_entry_passes_global_lib_dir(tmp_path, monkeypatch):
-    """TUI entry point passes validated --global-lib-dir to JLCImportTUI."""
+    """TUI entry point passes validated --global-lib-dir to JLCImportImpTUI."""
     real_dir = str(tmp_path)
     monkeypatch.setattr(
         "sys.argv",
         ["prog", "--global-lib-dir", real_dir],
     )
-    with patch("kicad_jlcimport.tui.app.JLCImportTUI") as mock_cls:
+    with patch("kicad_jlcimport.tui.app.JLCImportImpTUI") as mock_cls:
         mock_app = MagicMock()
         mock_cls.return_value = mock_app
         from kicad_jlcimport.tui import main
@@ -81,38 +81,38 @@ def test_gui_entry_validates_nonexistent_dir(tmp_path, monkeypatch, capsys):
 
 @needs_textual
 def test_tui_app_constructor_stores_override(tmp_path, monkeypatch):
-    """JLCImportTUI stores the override and uses it as _global_lib_dir."""
+    """JLCImportImpTUI stores the override and uses it as _global_lib_dir."""
     monkeypatch.setattr(
         "kicad_jlcimport.tui.app.load_config",
-        lambda: {"lib_name": "JLCImport"},
+        lambda: {"lib_name": "JLCImport-Imp"},
     )
-    from kicad_jlcimport.tui.app import JLCImportTUI
+    from kicad_jlcimport.tui.app import JLCImportImpTUI
 
-    app = JLCImportTUI(global_lib_dir=str(tmp_path))
+    app = JLCImportImpTUI(global_lib_dir=str(tmp_path))
     assert app._global_lib_dir == str(tmp_path)
     assert app._global_lib_dir_override == str(tmp_path)
 
 
 @needs_textual
 def test_tui_app_constructor_without_override(tmp_path, monkeypatch):
-    """JLCImportTUI without override uses get_global_lib_dir."""
+    """JLCImportImpTUI without override uses get_global_lib_dir."""
     monkeypatch.setattr(
         "kicad_jlcimport.tui.app.load_config",
-        lambda: {"lib_name": "JLCImport"},
+        lambda: {"lib_name": "JLCImport-Imp"},
     )
     monkeypatch.setattr(
         "kicad_jlcimport.tui.app.get_global_lib_dir",
         lambda _v: str(tmp_path / "default"),
     )
-    from kicad_jlcimport.tui.app import JLCImportTUI
+    from kicad_jlcimport.tui.app import JLCImportImpTUI
 
-    app = JLCImportTUI()
+    app = JLCImportImpTUI()
     assert app._global_lib_dir == str(tmp_path / "default")
     assert app._global_lib_dir_override == ""
 
 
 # Dialog tests use SimpleNamespace as a stand-in for self because
-# JLCImportDialog inherits from wx.Dialog (C extension) which cannot
+# JLCImportImpDialog inherits from wx.Dialog (C extension) which cannot
 # be instantiated without a running wx.App.
 
 
@@ -123,7 +123,7 @@ def test_dialog_version_change_preserves_override(monkeypatch):
         "kicad_jlcimport.dialog.load_config",
         lambda: {"global_lib_dir": ""},
     )
-    from kicad_jlcimport.dialog import JLCImportDialog
+    from kicad_jlcimport.dialog import JLCImportImpDialog
 
     dlg = SimpleNamespace(
         _global_lib_dir_override="/cli/override",
@@ -138,7 +138,7 @@ def test_dialog_version_change_preserves_override(monkeypatch):
         def Skip(self):
             pass
 
-    JLCImportDialog._on_version_change(dlg, FakeEvent())
+    JLCImportImpDialog._on_version_change(dlg, FakeEvent())
 
     # Override should be preserved — _global_lib_dir not changed
     assert dlg._global_lib_dir == "/cli/override"
@@ -155,7 +155,7 @@ def test_dialog_version_change_updates_without_override(monkeypatch):
         "kicad_jlcimport.dialog.get_global_lib_dir",
         lambda _v: "/new/default/path",
     )
-    from kicad_jlcimport.dialog import JLCImportDialog
+    from kicad_jlcimport.dialog import JLCImportImpDialog
 
     dlg = SimpleNamespace(
         _global_lib_dir_override="",
@@ -172,7 +172,7 @@ def test_dialog_version_change_updates_without_override(monkeypatch):
         def Skip(self):
             pass
 
-    JLCImportDialog._on_version_change(dlg, FakeEvent())
+    JLCImportImpDialog._on_version_change(dlg, FakeEvent())
 
     assert dlg._global_lib_dir == "/new/default/path"
     dlg._set_global_path.assert_called_once_with("/new/default/path")
@@ -189,7 +189,7 @@ def test_dialog_browse_clears_override(monkeypatch):
         "kicad_jlcimport.dialog.save_config",
         lambda _c: None,
     )
-    from kicad_jlcimport.dialog import JLCImportDialog
+    from kicad_jlcimport.dialog import JLCImportImpDialog
 
     mock_dir_dlg = MagicMock()
     mock_dir_dlg.ShowModal.return_value = wx.ID_OK
@@ -207,7 +207,7 @@ def test_dialog_browse_clears_override(monkeypatch):
         _update_version_visibility=MagicMock(),
     )
 
-    JLCImportDialog._on_global_browse(dlg, None)
+    JLCImportImpDialog._on_global_browse(dlg, None)
 
     assert dlg._global_lib_dir == "/new/path"
     assert dlg._global_lib_dir_override == ""
@@ -229,7 +229,7 @@ def test_dialog_reset_clears_override(monkeypatch):
         "kicad_jlcimport.dialog.get_global_lib_dir",
         lambda _v: "/default/path",
     )
-    from kicad_jlcimport.dialog import JLCImportDialog
+    from kicad_jlcimport.dialog import JLCImportImpDialog
 
     dlg = SimpleNamespace(
         _global_lib_dir_override="/cli/override",
@@ -243,7 +243,7 @@ def test_dialog_reset_clears_override(monkeypatch):
     )
     dlg.version_choice.GetSelection.return_value = 1
 
-    JLCImportDialog._on_global_reset(dlg, None)
+    JLCImportImpDialog._on_global_reset(dlg, None)
 
     assert dlg._global_lib_dir == "/default/path"
     assert dlg._global_lib_dir_override == ""

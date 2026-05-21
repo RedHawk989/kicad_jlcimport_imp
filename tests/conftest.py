@@ -1,4 +1,4 @@
-"""Shared test fixtures for JLCImport tests."""
+"""Shared test fixtures for JLCImport-Imp tests."""
 
 import os
 import sys

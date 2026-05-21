@@ -495,11 +495,11 @@ class TestIterKicadConfigVersions:
 
 
 class TestIterFootprintLibrariesJlcInjection:
-    """Tests for JLCImport .pretty directory injection."""
+    """Tests for JLCImport-Imp .pretty directory injection."""
 
     def test_jlc_project_dir_injected(self, tmp_path, monkeypatch):
-        # Create a JLCImport.pretty in the project dir
-        pretty = tmp_path / "JLCImport.pretty"
+        # Create a JLCImport-Imp.pretty in the project dir
+        pretty = tmp_path / "JLCImport-Imp.pretty"
         pretty.mkdir()
         # Mock the global fp-lib-table to not interfere
         monkeypatch.setattr(library, "get_global_config_dir", lambda v: str(tmp_path / "nonexistent"))
@@ -509,7 +509,7 @@ class TestIterFootprintLibrariesJlcInjection:
 
         result = library._iter_footprint_libraries(str(tmp_path))
         lib_names = [name for name, path in result]
-        assert "JLCImport" in lib_names
+        assert "JLCImport-Imp" in lib_names
 
     def test_jlc_global_dir_injected(self, tmp_path, monkeypatch):
         global_dir = tmp_path / "global"
@@ -522,16 +522,16 @@ class TestIterFootprintLibrariesJlcInjection:
         assert "MyLib" in lib_names
 
     def test_no_duplicate_when_already_in_table(self, tmp_path, monkeypatch):
-        pretty = tmp_path / "JLCImport.pretty"
+        pretty = tmp_path / "JLCImport-Imp.pretty"
         pretty.mkdir()
-        # Write a fp-lib-table that already references JLCImport
+        # Write a fp-lib-table that already references JLCImport-Imp
         (tmp_path / "fp-lib-table").write_text(
-            f'(fp_lib_table\n  (lib (name "JLCImport")(type "KiCad")(uri "{pretty}"))\n)\n'
+            f'(fp_lib_table\n  (lib (name "JLCImport-Imp")(type "KiCad")(uri "{pretty}"))\n)\n'
         )
         monkeypatch.setattr(library, "get_global_config_dir", lambda v: str(tmp_path / "nonexistent"))
 
         result = library._iter_footprint_libraries(str(tmp_path))
-        jlc_entries = [(n, p) for n, p in result if n == "JLCImport"]
+        jlc_entries = [(n, p) for n, p in result if n == "JLCImport-Imp"]
         assert len(jlc_entries) == 1
 
 
@@ -773,7 +773,7 @@ class TestMetadataEditDialogVersion:
         class FakeParent:
             _kicad_version = 8  # stale value
             _project_dir = ""
-            _lib_name = "JLCImport"
+            _lib_name = "JLCImport-Imp"
             _global_lib_dir = ""
 
             def _get_kicad_version(self):

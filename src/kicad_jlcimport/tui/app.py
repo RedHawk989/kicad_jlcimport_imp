@@ -1,4 +1,4 @@
-"""Main TUI application for JLCImport."""
+"""Main TUI application for JLCImport-Imp."""
 
 from __future__ import annotations
 
@@ -259,10 +259,10 @@ class MetadataEditScreen(Screen):
         )
 
 
-class JLCImportTUI(App):
-    """TUI application for JLCImport - search and import JLCPCB components."""
+class JLCImportImpTUI(App):
+    """TUI application for JLCImport-Imp - search and import JLCPCB components."""
 
-    TITLE = "JLCImport"
+    TITLE = "JLCImport-Imp"
     SUB_TITLE = ""
 
     CSS = """
@@ -464,7 +464,7 @@ class JLCImportTUI(App):
         self._project_dir = project_dir
         self._kicad_version = kicad_version or DEFAULT_KICAD_VERSION
         _config = load_config()
-        self._lib_name = _config.get("lib_name", "JLCImport")
+        self._lib_name = _config.get("lib_name", "JLCImport-Imp")
         self._use_global = _config.get("use_global", False)
         self._global_lib_dir_override = global_lib_dir
         if global_lib_dir:

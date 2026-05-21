@@ -1,4 +1,4 @@
-"""wxPython dialog for JLCImport plugin."""
+"""wxPython dialog for JLCImport-Imp plugin."""
 
 from __future__ import annotations
 
@@ -750,7 +750,7 @@ class FootprintBrowserDialog(wx.Dialog):
         project_dir: str = "",
         kicad_version: int = DEFAULT_KICAD_VERSION,
         initial_selection: str = "",
-        jlc_lib_name: str = "JLCImport",
+        jlc_lib_name: str = "JLCImport-Imp",
         jlc_global_lib_dir: str = "",
     ):
         super().__init__(
@@ -1015,9 +1015,9 @@ class MetadataEditDialog(wx.Dialog):
         # In plugin mode _project_dir is empty; _get_project_dir() reads the board path instead.
         _gpd = getattr(parent, "_get_project_dir", None)
         self._project_dir = (_gpd() if callable(_gpd) else getattr(parent, "_project_dir", "")) or ""
-        # Used to make JLCImport-managed .pretty dirs visible in the browser even
+        # Used to make JLCImport-Imp-managed .pretty dirs visible in the browser even
         # when the lib-table hasn't been reloaded by KiCad yet.
-        self._jlc_lib_name = getattr(parent, "_lib_name", "JLCImport")
+        self._jlc_lib_name = getattr(parent, "_lib_name", "JLCImport-Imp")
         self._jlc_global_lib_dir = getattr(parent, "_global_lib_dir", "") or ""
         super().__init__(
             parent,
@@ -1250,9 +1250,9 @@ class _SpinnerOverlay(wx.Window):
             dc.DrawLine(int(x1), int(y1), int(x2), int(y2))
 
 
-class JLCImportDialog(wx.Dialog):
+class JLCImportImpDialog(wx.Dialog):
     def __init__(self, parent, board, project_dir=None, kicad_version=None, global_lib_dir="", on_close=None):
-        super().__init__(parent, title="JLCImport", size=(700, 640), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        super().__init__(parent, title="JLCImport-Imp", size=(700, 640), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.board = board
         self._project_dir = project_dir  # Used when board is None (standalone mode)
         self._kicad_version = kicad_version or DEFAULT_KICAD_VERSION
@@ -1519,7 +1519,7 @@ class JLCImportDialog(wx.Dialog):
         # Row 3: Library name | KiCad version
         lib_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
         lib_name_sizer.Add(wx.StaticText(panel, label="Library"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
-        self._lib_name = _config.get("lib_name", "JLCImport")
+        self._lib_name = _config.get("lib_name", "JLCImport-Imp")
         self.lib_name_input = wx.TextCtrl(panel, size=(120, -1), value=self._lib_name)
         self.lib_name_input.Bind(wx.EVT_KILL_FOCUS, self._on_lib_name_change)
         lib_name_sizer.Add(self.lib_name_input, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 15)

@@ -686,7 +686,7 @@ class TestImportBackslashPaths:
         fake_fp = self._make_fake_footprint()
 
         # Make ensure_lib_structure return paths with backslashes (simulating Windows)
-        def fake_ensure(base_path, lib_name="JLCImport"):
+        def fake_ensure(base_path, lib_name="JLCImport-Imp"):
             models_dir = base_path + "\\TestLib.3dshapes"
             os.makedirs(os.path.join(base_path, "TestLib.3dshapes"), exist_ok=True)
             os.makedirs(os.path.join(base_path, "TestLib.pretty"), exist_ok=True)

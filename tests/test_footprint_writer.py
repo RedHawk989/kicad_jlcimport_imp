@@ -27,7 +27,7 @@ class TestWriteFootprint:
         result = write_footprint(fp, "Test")
         assert '(footprint "Test"' in result
         assert "(version 20241229)" in result
-        assert '(generator "JLCImport")' in result
+        assert '(generator "JLCImport-Imp")' in result
         assert "(embedded_fonts no)" in result
         assert result.endswith(")\n")
 
@@ -334,7 +334,7 @@ class TestWriteFootprintVersions:
     def test_v8_footprint_has_generator(self):
         fp = _make_footprint()
         result = write_footprint(fp, "Test", kicad_version=KICAD_V8)
-        assert '(generator "JLCImport")' in result
+        assert '(generator "JLCImport-Imp")' in result
 
     def test_v8_footprint_still_valid(self):
         """Verify v8 footprint has basic structure."""

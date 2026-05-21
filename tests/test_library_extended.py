@@ -24,7 +24,7 @@ class TestLoadConfig:
         # Make _config_path return a non-existent file
         monkeypatch.setattr(library, "_config_path", lambda: str(tmp_path / "nonexistent.json"))
         config = library.load_config()
-        assert config["lib_name"] == "JLCImport"
+        assert config["lib_name"] == "JLCImport-Imp"
 
     def test_load_config_reads_existing_file(self, tmp_path, monkeypatch):
         config_file = tmp_path / "jlcimport.json"
@@ -41,7 +41,7 @@ class TestLoadConfig:
         monkeypatch.setattr(library, "_config_path", lambda: str(config_file))
 
         config = library.load_config()
-        assert config["lib_name"] == "JLCImport"  # Falls back to default
+        assert config["lib_name"] == "JLCImport-Imp"  # Falls back to default
 
     def test_load_config_handles_non_dict_json(self, tmp_path, monkeypatch):
         config_file = tmp_path / "jlcimport.json"
@@ -49,7 +49,7 @@ class TestLoadConfig:
         monkeypatch.setattr(library, "_config_path", lambda: str(config_file))
 
         config = library.load_config()
-        assert config["lib_name"] == "JLCImport"  # Falls back to default
+        assert config["lib_name"] == "JLCImport-Imp"  # Falls back to default
 
     def test_default_config_includes_global_lib_dir(self):
         assert "global_lib_dir" in library._DEFAULT_CONFIG
@@ -223,7 +223,7 @@ class TestGetGlobalLibDir:
         custom_dir = str(tmp_path / "custom_libs")
         os.makedirs(custom_dir)
         config_file = tmp_path / "cfg.json"
-        config_file.write_text(json.dumps({"lib_name": "JLCImport", "global_lib_dir": custom_dir}))
+        config_file.write_text(json.dumps({"lib_name": "JLCImport-Imp", "global_lib_dir": custom_dir}))
         monkeypatch.setattr(library, "_config_path", lambda: str(config_file))
 
         result = library.get_global_lib_dir(kicad_version=9)
@@ -231,7 +231,7 @@ class TestGetGlobalLibDir:
 
     def test_get_global_lib_dir_falls_back_when_empty(self, tmp_path, monkeypatch):
         config_file = tmp_path / "cfg.json"
-        config_file.write_text(json.dumps({"lib_name": "JLCImport", "global_lib_dir": ""}))
+        config_file.write_text(json.dumps({"lib_name": "JLCImport-Imp", "global_lib_dir": ""}))
         monkeypatch.setattr(library, "_config_path", lambda: str(config_file))
         monkeypatch.setattr(library, "_kicad_data_base", lambda: "/home/user/kicad")
 
@@ -243,7 +243,7 @@ class TestGetGlobalLibDir:
         custom_dir = str(tmp_path / "custom_libs")
         os.makedirs(custom_dir)
         config_file = tmp_path / "cfg.json"
-        config_file.write_text(json.dumps({"lib_name": "JLCImport", "global_lib_dir": custom_dir}))
+        config_file.write_text(json.dumps({"lib_name": "JLCImport-Imp", "global_lib_dir": custom_dir}))
         monkeypatch.setattr(library, "_config_path", lambda: str(config_file))
 
         result_v8 = library.get_global_lib_dir(kicad_version=8)
@@ -252,7 +252,7 @@ class TestGetGlobalLibDir:
 
     def test_get_global_lib_dir_raises_on_invalid_custom_dir(self, tmp_path, monkeypatch):
         config_file = tmp_path / "cfg.json"
-        config_file.write_text(json.dumps({"lib_name": "JLCImport", "global_lib_dir": "/nonexistent/path"}))
+        config_file.write_text(json.dumps({"lib_name": "JLCImport-Imp", "global_lib_dir": "/nonexistent/path"}))
         monkeypatch.setattr(library, "_config_path", lambda: str(config_file))
 
         import pytest
@@ -357,7 +357,7 @@ class TestUpdateGlobalLibTablesBackslash:
 
         # Pass a Windows-style backslash path
         lib_dir = r"C:\Users\admin\AppData\kicad\9.0\3rdparty"
-        library.update_global_lib_tables(lib_dir, "JLCImport")
+        library.update_global_lib_tables(lib_dir, "JLCImport-Imp")
 
         for table_name in ("sym-lib-table", "fp-lib-table"):
             content = (config_dir / table_name).read_text()

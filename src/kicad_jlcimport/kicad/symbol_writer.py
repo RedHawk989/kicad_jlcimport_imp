@@ -246,7 +246,7 @@ def write_symbol_library(
     lines = [
         "(kicad_symbol_lib",
         f"  (version {symbol_format_version(kicad_version)})",
-        '  (generator "JLCImport")',
+        '  (generator "JLCImport-Imp")',
     ]
     if has_generator_version(kicad_version):
         lines.append('  (generator_version "1.0")')

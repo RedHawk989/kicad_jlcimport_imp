@@ -10,7 +10,7 @@ import sys
 from .version import DEFAULT_KICAD_VERSION, has_generator_version, symbol_format_version, version_dir_name
 
 _DEFAULT_CONFIG = {
-    "lib_name": "JLCImport",
+    "lib_name": "JLCImport-Imp",
     "global_lib_dir": "",
     "use_global": False,
     # imp-kicad-lib integration
@@ -63,7 +63,7 @@ def save_config(config: dict) -> None:
         f.write("\n")
 
 
-def ensure_lib_structure(base_path: str, lib_name: str = "JLCImport") -> dict:
+def ensure_lib_structure(base_path: str, lib_name: str = "JLCImport-Imp") -> dict:
     """Create library directory structure if needed.
 
     Returns dict with paths: sym_path, fp_dir, models_dir
@@ -98,7 +98,7 @@ def add_symbol_to_lib(
         # Create new library with this symbol
         header = "(kicad_symbol_lib\n"
         header += f"  (version {symbol_format_version(kicad_version)})\n"
-        header += '  (generator "JLCImport")\n'
+        header += '  (generator "JLCImport-Imp")\n'
         if has_generator_version(kicad_version):
             header += '  (generator_version "1.0")\n'
         with open(sym_path, "w", encoding="utf-8") as f:
@@ -174,7 +174,7 @@ def save_footprint(fp_dir: str, name: str, content: str, overwrite: bool = False
     return True
 
 
-def update_project_lib_tables(project_dir: str, lib_name: str = "JLCImport") -> bool:
+def update_project_lib_tables(project_dir: str, lib_name: str = "JLCImport-Imp") -> bool:
     """Add library entries to sym-lib-table and fp-lib-table if missing.
 
     Returns True if a table was newly created (requires project reopen).
@@ -268,7 +268,7 @@ def get_global_config_dir(kicad_version: int = DEFAULT_KICAD_VERSION) -> str:
 
 
 def update_global_lib_tables(
-    lib_dir: str, lib_name: str = "JLCImport", kicad_version: int = DEFAULT_KICAD_VERSION
+    lib_dir: str, lib_name: str = "JLCImport-Imp", kicad_version: int = DEFAULT_KICAD_VERSION
 ) -> None:
     """Add library entries to the global sym-lib-table and fp-lib-table."""
     config_dir = get_global_config_dir(kicad_version)
@@ -466,7 +466,7 @@ def _expand_lib_uri(uri: str, project_dir: str = "", kicad_version: int = DEFAUL
         if key == "KIPRJMOD":
             # Return the raw token when project_dir is unknown so the
             # downstream "${" guard discards this entry rather than
-            # producing a bogus root-relative path like "/JLCImport.pretty".
+            # producing a bogus root-relative path like "/JLCImport-Imp.pretty".
             return project_dir if project_dir else match.group(0)
         resolved = resolve_kicad_var(key, kicad_version)
         if resolved:
@@ -485,17 +485,17 @@ def _expand_lib_uri(uri: str, project_dir: str = "", kicad_version: int = DEFAUL
 def _iter_footprint_libraries(
     project_dir: str,
     kicad_version: int = DEFAULT_KICAD_VERSION,
-    jlc_lib_name: str = "JLCImport",
+    jlc_lib_name: str = "JLCImport-Imp",
     jlc_global_lib_dir: str = "",
 ) -> list[tuple[str, str]]:
     """Return existing .pretty directories from project/global fp-lib-table files.
 
-    Also injects any JLCImport .pretty directories that exist on disk but are
+    Also injects any JLCImport-Imp .pretty directories that exist on disk but are
     not yet registered in a lib-table (e.g. immediately after a first import,
     before KiCad has been restarted to pick up the new lib-table entry).
 
-    jlc_lib_name:       The configured JLCImport library name (default "JLCImport").
-    jlc_global_lib_dir: The global JLCImport output directory, if known.
+    jlc_lib_name:       The configured JLCImport-Imp library name (default "JLCImport-Imp").
+    jlc_global_lib_dir: The global JLCImport-Imp output directory, if known.
     """
     candidates: list[tuple[str, str]] = []
     # FIFO worklist so project entries are processed before global, preserving
@@ -536,7 +536,7 @@ def _iter_footprint_libraries(
                     continue
                 tables.append((path, os.path.dirname(path)))
 
-    # Inject JLCImport .pretty directories that exist on disk but are missing
+    # Inject JLCImport-Imp .pretty directories that exist on disk but are missing
     # from the lib-tables.  This covers the window between the first import
     # (which writes the lib-table) and the next KiCad restart (which reads it).
     # Two candidate locations are checked: the project directory and the

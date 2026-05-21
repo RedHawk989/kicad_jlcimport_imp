@@ -1,4 +1,4 @@
-"""TUI (Text User Interface) for JLCImport using Textual."""
+"""TUI (Text User Interface) for JLCImport-Imp using Textual."""
 
 from __future__ import annotations
 
@@ -8,11 +8,11 @@ import sys
 
 
 def main():
-    from .app import JLCImportTUI
+    from .app import JLCImportImpTUI
 
     parser = argparse.ArgumentParser(
         prog="jlcimport-tui",
-        description="JLCImport TUI - interactive terminal interface for JLCPCB component import",
+        description="JLCImport-Imp TUI - interactive terminal interface for JLCPCB component import",
     )
     parser.add_argument(
         "-p",
@@ -55,7 +55,7 @@ def main():
             print(f"Error: --global-lib-dir does not exist: {global_lib_dir}", file=sys.stderr)
             sys.exit(1)
 
-    app = JLCImportTUI(
+    app = JLCImportImpTUI(
         project_dir=project_dir,
         kicad_version=args.kicad_version,
         global_lib_dir=global_lib_dir,

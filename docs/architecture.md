@@ -1,10 +1,10 @@
 # Architecture
 
-This document describes how JLCImport works: the system architecture, data flow, module responsibilities, and external APIs used.
+This document describes how JLCImport-Imp works: the system architecture, data flow, module responsibilities, and external APIs used.
 
 ## Overview
 
-JLCImport bridges the JLCPCB/LCSC component catalog with KiCad 8, 9, and 10. It fetches component data from EasyEDA's public APIs, parses their proprietary shape format, and writes native KiCad file formats (`.kicad_sym`, `.kicad_mod`, `.step`, `.wrl`). The plugin auto-detects the running KiCad version; the standalone CLI, GUI, and TUI allow selecting the target version. The plugin runs entirely within KiCad's bundled Python environment with no external dependencies. A standalone TUI provides the same functionality in the terminal.
+JLCImport-Imp bridges the JLCPCB/LCSC component catalog with KiCad 8, 9, and 10. It fetches component data from EasyEDA's public APIs, parses their proprietary shape format, and writes native KiCad file formats (`.kicad_sym`, `.kicad_mod`, `.step`, `.wrl`). The plugin auto-detects the running KiCad version; the standalone CLI, GUI, and TUI allow selecting the target version. The plugin runs entirely within KiCad's bundled Python environment with no external dependencies. A standalone TUI provides the same functionality in the terminal.
 
 ## Source Layout
 
@@ -48,7 +48,7 @@ The codebase is organized in layers from top to bottom:
 
 ### User Interface
 
-- **`plugin.py`** — KiCad ActionPlugin registration. Defines the menu entry under Tools > External Plugins > JLCImport and spawns the dialog.
+- **`plugin.py`** — KiCad ActionPlugin registration. Defines the menu entry under Tools > External Plugins > JLCImport-Imp and spawns the dialog.
 - **`dialog.py`** — wxPython dialog with search input, results list, detail panel, image gallery, import options, and status log. Long-running operations (search, import, image fetch) run in background threads to keep the UI responsive.
 - **`cli.py`** — Command-line interface with `search` and `import` subcommands for scripted or batch use outside KiCad. Supports `--lib-name` for custom library names.
 - **`gui/`** — Standalone wxPython GUI for use outside KiCad. Provides the same workflow as the plugin dialog with a directory picker for project selection.
@@ -116,7 +116,7 @@ The parser splits these strings, converts coordinates from mils to millimeters, 
 
 ## Library Structure
 
-When a component is imported, the plugin creates/updates this structure in the target directory (library name is configurable, defaults to "JLCImport"):
+When a component is imported, the plugin creates/updates this structure in the target directory (library name is configurable, defaults to "JLCImport-Imp"):
 
 ```
 <target>/
@@ -162,7 +162,7 @@ Settings are persisted in `jlcimport.json` in the KiCad config base directory (o
 The config file is shared between the plugin, TUI, and CLI. Currently stores:
 
 ```json
-{"lib_name": "JLCImport"}
+{"lib_name": "JLCImport-Imp"}
 ```
 
 ## Design Decisions

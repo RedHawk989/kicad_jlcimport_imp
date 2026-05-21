@@ -44,7 +44,7 @@ def write_footprint(
 
     lines.append(f'(footprint "{name}"')
     lines.append(f"  (version {footprint_format_version(kicad_version)})")
-    lines.append('  (generator "JLCImport")')
+    lines.append('  (generator "JLCImport-Imp")')
     if has_generator_version(kicad_version):
         lines.append('  (generator_version "1.0")')
     lines.append('  (layer "F.Cu")')

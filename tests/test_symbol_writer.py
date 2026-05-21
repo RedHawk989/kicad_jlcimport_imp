@@ -75,8 +75,8 @@ class TestWriteSymbol:
 
     def test_footprint_property(self):
         sym = _make_symbol()
-        result = write_symbol(sym, "Test", footprint_ref="JLCImport:Test")
-        assert '(property "Footprint" "JLCImport:Test"' in result
+        result = write_symbol(sym, "Test", footprint_ref="JLCImport-Imp:Test")
+        assert '(property "Footprint" "JLCImport-Imp:Test"' in result
 
     def test_metadata_properties_are_hidden(self):
         """Footprint, Datasheet, LCSC properties must have 'hide' to avoid schematic clutter."""
@@ -325,7 +325,7 @@ class TestWriteSymbolLibraryVersions:
 
     def test_v8_library_has_generator(self):
         result = write_symbol_library([], kicad_version=KICAD_V8)
-        assert '(generator "JLCImport")' in result
+        assert '(generator "JLCImport-Imp")' in result
 
     def test_default_is_v9(self):
         result = write_symbol_library([])

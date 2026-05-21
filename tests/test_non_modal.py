@@ -23,7 +23,7 @@ class TestOnCloseCleanup:
     """_on_close stops timers, invalidates requests, fires callback, and destroys."""
 
     def _make_dialog(self, on_close=None, panel_enabled=True):
-        """Build a SimpleNamespace that mimics JLCImportDialog for _on_close."""
+        """Build a SimpleNamespace that mimics JLCImportImpDialog for _on_close."""
         return SimpleNamespace(
             _closing=False,
             _main_panel=MagicMock(IsEnabled=MagicMock(return_value=panel_enabled)),
@@ -44,25 +44,25 @@ class TestOnCloseCleanup:
         )
 
     def test_on_close_fires_callback(self):
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         callback = MagicMock()
         dlg = self._make_dialog(on_close=callback)
-        JLCImportDialog._on_close(dlg, None)
+        JLCImportImpDialog._on_close(dlg, None)
         callback.assert_called_once()
 
     def test_on_close_destroys_window(self):
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dlg = self._make_dialog()
-        JLCImportDialog._on_close(dlg, None)
+        JLCImportImpDialog._on_close(dlg, None)
         dlg.Destroy.assert_called_once()
 
     def test_on_close_stops_all_timers(self):
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dlg = self._make_dialog()
-        JLCImportDialog._on_close(dlg, None)
+        JLCImportImpDialog._on_close(dlg, None)
         dlg._stop_search_pulse.assert_called_once()
         dlg._stop_skeleton.assert_called_once()
         dlg._stop_gallery_skeleton.assert_called_once()
@@ -70,10 +70,10 @@ class TestOnCloseCleanup:
         dlg._search_overlay.dismiss.assert_called_once()
 
     def test_on_close_invalidates_request_ids(self):
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dlg = self._make_dialog()
-        JLCImportDialog._on_close(dlg, None)
+        JLCImportImpDialog._on_close(dlg, None)
         assert dlg._search_request_id == 1
         assert dlg._image_request_id == 1
         assert dlg._gallery_request_id == 1
@@ -81,27 +81,27 @@ class TestOnCloseCleanup:
         assert dlg._symbol_request_id == 1
 
     def test_on_close_sets_closing_flag(self):
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dlg = self._make_dialog()
-        JLCImportDialog._on_close(dlg, None)
+        JLCImportImpDialog._on_close(dlg, None)
         assert dlg._closing is True
 
     def test_double_close_is_noop(self):
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dlg = self._make_dialog()
-        JLCImportDialog._on_close(dlg, None)
+        JLCImportImpDialog._on_close(dlg, None)
         dlg.Destroy.reset_mock()
         # Second call should be a no-op
-        JLCImportDialog._on_close(dlg, None)
+        JLCImportImpDialog._on_close(dlg, None)
         dlg.Destroy.assert_not_called()
 
     def test_on_close_without_callback(self):
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dlg = self._make_dialog(on_close=None)
-        JLCImportDialog._on_close(dlg, None)
+        JLCImportImpDialog._on_close(dlg, None)
         dlg.Destroy.assert_called_once()
 
 
@@ -112,7 +112,7 @@ class TestCloseBlockedDuringImport:
     def test_close_blocked_when_user_declines(self):
         import wx
 
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dlg = SimpleNamespace(
             _closing=False,
@@ -121,14 +121,14 @@ class TestCloseBlockedDuringImport:
             Destroy=MagicMock(),
         )
         with patch.object(wx, "MessageBox", return_value=wx.NO):
-            JLCImportDialog._on_close(dlg, None)
+            JLCImportImpDialog._on_close(dlg, None)
         dlg.Destroy.assert_not_called()
         assert dlg._closing is False
 
     def test_close_allowed_when_user_confirms(self):
         import wx
 
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         callback = MagicMock()
         dlg = SimpleNamespace(
@@ -150,7 +150,7 @@ class TestCloseBlockedDuringImport:
             Destroy=MagicMock(),
         )
         with patch.object(wx, "MessageBox", return_value=wx.YES):
-            JLCImportDialog._on_close(dlg, None)
+            JLCImportImpDialog._on_close(dlg, None)
         dlg.Destroy.assert_called_once()
         callback.assert_called_once()
 
@@ -163,7 +163,7 @@ class TestClosingGuardsCallAfter:
         """_import_worker should not CallAfter when dialog is closing."""
         import wx
 
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dlg = SimpleNamespace(
             _closing=True,
@@ -171,14 +171,14 @@ class TestClosingGuardsCallAfter:
             _handle_ssl_cert_error=MagicMock(),
         )
         with patch.object(wx, "CallAfter") as mock_call_after:
-            JLCImportDialog._import_worker(dlg, "C123", "/d", "lib", False, {}, 9)
+            JLCImportImpDialog._import_worker(dlg, "C123", "/d", "lib", False, {}, 9)
         mock_call_after.assert_not_called()
 
     def test_do_import_log_skips_when_closing(self):
         """The log() closure in _do_import should not CallAfter when closing."""
         import wx
 
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         log_fn = None
 
@@ -195,7 +195,7 @@ class TestClosingGuardsCallAfter:
             _confirm_overwrite=MagicMock(),
         )
         with patch("kicad_jlcimport.dialog.import_component", side_effect=capture_import_component):
-            JLCImportDialog._do_import(dlg, "C123", "/d", "lib", False, {}, 9)
+            JLCImportImpDialog._do_import(dlg, "C123", "/d", "lib", False, {}, 9)
         assert log_fn is not None
         with patch.object(wx, "CallAfter") as mock_call_after:
             log_fn("test message")
@@ -205,7 +205,7 @@ class TestClosingGuardsCallAfter:
         """_handle_ssl_cert_error should not CallAfter when closing."""
         import wx
 
-        from kicad_jlcimport.dialog import JLCImportDialog
+        from kicad_jlcimport.dialog import JLCImportImpDialog
 
         dlg = SimpleNamespace(
             _closing=True,
@@ -215,5 +215,5 @@ class TestClosingGuardsCallAfter:
             patch.object(wx, "CallAfter") as mock_call_after,
             patch("kicad_jlcimport.dialog._api_module.allow_unverified_ssl"),
         ):
-            JLCImportDialog._handle_ssl_cert_error(dlg)
+            JLCImportImpDialog._handle_ssl_cert_error(dlg)
         mock_call_after.assert_not_called()

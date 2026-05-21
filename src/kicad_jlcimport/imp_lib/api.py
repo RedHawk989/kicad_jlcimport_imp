@@ -85,7 +85,7 @@ def try_contribute(
         commit_and_push(
             imp_lib_path=imp_lib,
             relative_paths=rel_written,
-            message=f"Add {part_name} via JLCImport plugin",
+            message=f"Add {part_name} via JLCImport-Imp plugin",
             push=True,
             log=log,
         )

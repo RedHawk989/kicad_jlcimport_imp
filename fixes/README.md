@@ -20,7 +20,7 @@ pre-compiled file restores SVG support.
 
 3. Copy `_nanosvg.pyd` from this directory into that folder. You may need to
    run the copy as Administrator since `Program Files` is protected.
-4. Restart KiCad. Symbol previews in JLCImport should now work.
+4. Restart KiCad. Symbol previews in JLCImport-Imp should now work.
 
 ### Verification
 

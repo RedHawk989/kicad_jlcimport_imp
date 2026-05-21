@@ -10,7 +10,7 @@ When this plugin imports a part and detects `imp-kicad-lib` as a git submodule o
 4. **Writes** the files into the lib's per-symbol layout (`symbols/<Cat>__C.kicad_symdir/<part>.kicad_sym`, etc.) and rewrites the `.kicad_mod` `(model …)` paths to `../../packages3d/<Cat>__C.3dshapes/<part>.step`.
 5. **Optionally `git add` + `commit` + `push`** to the imp-kicad-lib remote.
 
-All upstream JLCImport features (project/global library import, KiCad 8/9/10, CLI, GUI, TUI) are preserved.
+All upstream JLCImport-Imp features (project/global library import, KiCad 8/9/10, CLI, GUI, TUI) are preserved.
 
 ![Search and details](images/search_results.png)
 
@@ -32,7 +32,7 @@ For local development, link `src/kicad_jlcimport` into your KiCad plugin directo
 
 ## Use In KiCad
 
-Open `PCB Editor > Tools > External Plugins > JLCImport`.
+Open `PCB Editor > Tools > External Plugins > JLCImport-Imp`.
 
 1. Search for a part.
 2. Pick Project or Global destination.

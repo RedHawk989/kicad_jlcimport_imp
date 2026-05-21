@@ -1,15 +1,15 @@
-"""KiCad ActionPlugin subclass for JLCImport."""
+"""KiCad ActionPlugin subclass for JLCImport-Imp."""
 
 import os
 
 import pcbnew
 import wx
 
-from .dialog import JLCImportDialog
+from .dialog import JLCImportImpDialog
 from .kicad.version import detect_kicad_version_from_pcbnew
 
 
-class JLCImportPlugin(pcbnew.ActionPlugin):
+class JLCImportImpPlugin(pcbnew.ActionPlugin):
     _dialog = None
 
     def defaults(self):
@@ -22,15 +22,15 @@ class JLCImportPlugin(pcbnew.ActionPlugin):
     @staticmethod
     def _clear_dialog():
         """Callback for the dialog to clear the singleton reference."""
-        JLCImportPlugin._dialog = None
+        JLCImportImpPlugin._dialog = None
 
     def Run(self):
-        if JLCImportPlugin._dialog is not None:
-            JLCImportPlugin._dialog.Raise()
+        if JLCImportImpPlugin._dialog is not None:
+            JLCImportImpPlugin._dialog.Raise()
             return
         board = pcbnew.GetBoard()
         kicad_version = detect_kicad_version_from_pcbnew()
         parent = wx.FindWindowByName("PcbFrame") or wx.FindWindowByName("SchematicFrame")
-        dlg = JLCImportDialog(parent, board, kicad_version=kicad_version, on_close=self._clear_dialog)
-        JLCImportPlugin._dialog = dlg
+        dlg = JLCImportImpDialog(parent, board, kicad_version=kicad_version, on_close=self._clear_dialog)
+        JLCImportImpPlugin._dialog = dlg
         dlg.Show()

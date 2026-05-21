@@ -153,7 +153,7 @@ SAMPLE_SYMBOL = """  (symbol "TEST_CAP"
     (property "Value" "TEST_CAP" (at 0 -7.08 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "JLCImport:TEST_CAP" (at 0 0 0)
+    (property "Footprint" "JLCImport-Imp:TEST_CAP" (at 0 0 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Description" "100nF 50V X7R 0402 Ceramic Capacitor" (at 0 0 0)
@@ -183,7 +183,7 @@ def test_reformat_symbol_sets_reference_and_annotation():
 
 
 def test_reformat_footprint_rewrites_model_path():
-    fp = '(footprint "X" (model "${KIPRJMOD}/JLCImport.3dshapes/X.wrl" (offset (xyz 0 0 0))))'
+    fp = '(footprint "X" (model "${KIPRJMOD}/JLCImport-Imp.3dshapes/X.wrl" (offset (xyz 0 0 0))))'
     out = reformat_footprint(fp, "Capacitor_SMD", "X")
     assert "../../packages3d/Capacitor_SMD__C.3dshapes/X.step" in out
     assert ".wrl" not in out
@@ -268,7 +268,7 @@ def test_write_imp_lib_files(tmp_path: Path):
         category="Capacitor_SMD",
         description="100nF 50V X7R 0402 Ceramic Capacitor",
         sym_content=SAMPLE_SYMBOL,
-        fp_content='(footprint "X" (model "${KIPRJMOD}/JLCImport.3dshapes/X.wrl"))',
+        fp_content='(footprint "X" (model "${KIPRJMOD}/JLCImport-Imp.3dshapes/X.wrl"))',
         step_src=None,
     )
     assert any(p.endswith(".kicad_sym") for p in written)
@@ -280,7 +280,7 @@ def test_write_imp_lib_files(tmp_path: Path):
 def test_try_contribute_not_found(tmp_path: Path):
     res = api.try_contribute(
         lib_dir=str(tmp_path),
-        lib_name="JLCImport",
+        lib_name="JLCImport-Imp",
         part_name="X",
         fp_name="X",
         description="",
@@ -295,7 +295,7 @@ def test_try_contribute_not_found(tmp_path: Path):
 def test_try_contribute_disabled(tmp_path: Path):
     res = api.try_contribute(
         lib_dir=str(tmp_path),
-        lib_name="JLCImport",
+        lib_name="JLCImport-Imp",
         part_name="X",
         fp_name="X",
         description="",
@@ -324,12 +324,12 @@ def test_try_contribute_added_then_duplicate(tmp_path: Path):
     }
     res = api.try_contribute(
         lib_dir=str(project),
-        lib_name="JLCImport",
+        lib_name="JLCImport-Imp",
         part_name="TEST_CAP",
         fp_name="C_0402",
         description="100nF 50V X7R 0402 Ceramic Capacitor",
         sym_content=SAMPLE_SYMBOL,
-        fp_content='(footprint "X" (model "${KIPRJMOD}/JLCImport.3dshapes/X.wrl"))',
+        fp_content='(footprint "X" (model "${KIPRJMOD}/JLCImport-Imp.3dshapes/X.wrl"))',
         config=cfg,
         log=lambda _msg: None,
     )
@@ -339,7 +339,7 @@ def test_try_contribute_added_then_duplicate(tmp_path: Path):
     # Second time should detect duplicate
     res2 = api.try_contribute(
         lib_dir=str(project),
-        lib_name="JLCImport",
+        lib_name="JLCImport-Imp",
         part_name="TEST_CAP2",
         fp_name="C_0402b",
         description="100nF 50V X7R 0402 Ceramic Capacitor",

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Standalone wxPython GUI entry point for JLCImport.
+"""Standalone wxPython GUI entry point for JLCImport-Imp.
 
-This module allows running JLCImport as a standalone application outside of KiCad.
+This module allows running JLCImport-Imp as a standalone application outside of KiCad.
 It can be run directly or built into a binary with PyInstaller.
 
 Usage:
@@ -23,7 +23,7 @@ if _parent_dir not in sys.path:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="JLCImport - Import JLCPCB/LCSC components into KiCad libraries",
+        description="JLCImport-Imp - Import JLCPCB/LCSC components into KiCad libraries",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 When run without arguments, a directory picker dialog will be shown.
@@ -87,10 +87,10 @@ Examples:
         print("Install it with: pip install 'kicad-jlcimport[gui]'")
         sys.exit(1)
 
-    from kicad_jlcimport.dialog import JLCImportDialog
+    from kicad_jlcimport.dialog import JLCImportImpDialog
 
     app = wx.App()
-    app.SetAppName("JLCImport")
+    app.SetAppName("JLCImport-Imp")
 
     project_dir = None
 
@@ -116,7 +116,7 @@ Examples:
         dlg.Destroy()
 
     # Create and show main dialog
-    main_dlg = JLCImportDialog(
+    main_dlg = JLCImportImpDialog(
         None, board=None, project_dir=project_dir, kicad_version=args.kicad_version, global_lib_dir=global_lib_dir
     )
     main_dlg.ShowModal()
