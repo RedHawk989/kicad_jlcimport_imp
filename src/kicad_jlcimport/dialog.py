@@ -2816,31 +2816,36 @@ class JLCImportImpDialog(wx.Dialog):
             return True
         self._log(f"imp-kicad-lib: found {len(candidates)} similar part(s) — showing popup")
 
-        has_basic_alt = any(c.get("tier") == "basic" for c in candidates) and new_tier != "basic"
-        header_tier = f" [JLC {new_tier.title()}]" if new_tier else ""
-        lines = [
-            f"You are about to import '{part_name}'{header_tier}",
-            f"({description})",
-            "",
-        ]
-        if has_basic_alt:
-            lines.append(
-                "⚠ A JLC Basic-tier alternative already exists in imp-kicad-lib — "
-                "Basic parts are cheaper to assemble at JLCPCB than Extended ones."
+        try:
+            from .imp_lib.spec_format import render_comparison
+
+            new_part_info = {"name": part_name, "description": description}
+            comparison = render_comparison(new_part_info, candidates, new_tier=new_tier)
+        except Exception as exc:  # noqa: BLE001
+            self._log(f"imp-kicad-lib: comparison rendering failed: {exc}")
+            comparison = ""
+
+        if comparison:
+            msg = (
+                f"imp-kicad-lib already contains {len(candidates)} similar part(s).\n\n"
+                + comparison
+                + "\nImport this new part anyway?"
             )
-            lines.append("")
-        lines.append(f"imp-kicad-lib already contains {len(candidates)} similar part(s):")
-        lines.append("")
-        for c in candidates:
-            tier = c.get("tier", "other")
-            tier_tag = {"basic": " [JLC Basic]", "extended": " [JLC Extended]"}.get(tier, "")
-            diff = ", ".join(c.get("diffs", []) or ["near match"])
-            lines.append(f"  • {c['category']}__C : {c['name']}{tier_tag}")
-            lines.append(f"      {c.get('description', '')}")
-            lines.append(f"      differences: {diff}")
-            lines.append("")
-        lines.append("Import this new part anyway?")
-        msg = "\n".join(lines)
+        else:
+            # Fallback: bullet list (shouldn't normally happen)
+            lines = [
+                f"You are about to import '{part_name}'",
+                f"({description})",
+                "",
+                f"imp-kicad-lib already contains {len(candidates)} similar part(s):",
+                "",
+            ]
+            for c in candidates:
+                lines.append(f"  • {c['category']}__C : {c['name']}")
+                lines.append(f"      {c.get('description', '')}")
+                lines.append("")
+            lines.append("Import this new part anyway?")
+            msg = "\n".join(lines)
 
         dlg = wx.MessageDialog(
             self,
