@@ -2,19 +2,35 @@
 
 Fork of [`jvanderberg/kicad_jlcimport`](https://github.com/jvanderberg/kicad_jlcimport) that auto-integrates with the [`impossible-inc/imp-kicad-lib`](https://github.com/impossible-inc/imp-kicad-lib) shared component library.
 
-When this plugin imports a part and detects `imp-kicad-lib` as a git submodule of the active KiCad project (or via a configured fallback path), it:
+All upstream `kicad_jlcimport` features (project/global library import, KiCad 8/9/10, CLI/GUI/TUI, footprint reuse, KiCad footprint browser, 3D models) are preserved. This fork adds a deep integration with the shared `imp-kicad-lib` so a team can build up a clean, deduped, normalized component library without manual curation.
 
-1. **Auto-pulls** the latest `imp-kicad-lib` in the background when the import dialog opens, so dedupe checks run against current state.
-2. **Categorizes** the part (`Capacitor_SMD__C`, `Basic_Capacitors_Resistors__C`, `Inductor__C`, `LED__C`, `Transistor_FET__C`, `Connector_USB__C`, `Switch__C`, or `to-be-organized`).
-3. **Pre-flight similarity check** before download — opens a side-by-side comparison popup of any near matches (same value within 1 %, plus voltage/dielectric/tolerance/size differences flagged). JLC Basic alternatives to Extended parts are highlighted.
-4. **Exact-match dialog** — when the part is identical (same name, same LCSC code via the `(property "LCSC" …)` field, or same parsed spec), shows a dedicated *"Part already in library!"* dialog with `Cancel` (default) or `Import Anyways (overwrite)`.
-5. **Reformats** the symbol to match the library's conventions: correct Reference (`R`/`C`/`L`/`D`/`Q`/`SW`/`J`), hides Value on passives, injects a purple `_1_1` text annotation (`100nF/50V/X7R`, `6.8k`, `3.9uH`, `Green LED 0603`), prefixes the Footprint property with `<Category>__C:`.
-6. **Writes** the files into the lib's per-symbol layout (`symbols/<Cat>__C.kicad_symdir/<part>.kicad_sym`, etc.) and rewrites the `.kicad_mod` `(model …)` paths to `../../packages3d/<Cat>__C.3dshapes/<part>.step`.
-7. **Optionally `git add` + `commit` + `push`** to the imp-kicad-lib remote.
+## What this fork adds
 
-A **Remove from library** button in the dialog deletes a selected part's symbol/footprint/3D files from the shared lib and commits+pushes the removal.
+### Shared-library integration
+- **Auto-detect submodule.** When the active KiCad project has `imp-kicad-lib` checked out as a git submodule (or you set `imp_lib_path` in the config), every import is mirrored into the shared lib in addition to the project library.
+- **Background auto-pull on dialog open.** A background thread runs `git fetch` + `git pull --ff-only` on the shared lib the moment the import dialog appears, so dedupe checks always see the latest state. Failure modes (no upstream, not a git repo, network down) are silent. Toggle with `imp_lib_auto_pull`.
+- **Auto-categorize.** Parts are routed into the right `<Cat>__C.kicad_symdir` based on description and EasyEDA category: `Capacitor_SMD__C`, `Basic_Capacitors_Resistors__C`, `Extended_Capacitors_Resistors__C`, `Inductor__C`, `LED__C`, `Transistor_FET__C`, `Connector_USB__C`, `Switch__C`, plus `to-be-organized__C` as fallback.
+- **Imp-lib-primary mode.** When the part is successfully contributed to the shared library, the parallel project `JLCImport` library files are cleaned up so you don't end up with two copies referenced from two lib-table entries.
+- **Auto-commit + push.** New parts are staged, committed, and pushed to the `imp-kicad-lib` remote in one shot. Push failures keep the local commit so nothing is lost. Toggle with `imp_lib_auto_push`.
+- **Remove from library button.** Pick a part in the dialog and click *Remove from imp-kicad-lib* to delete the symbol, footprint, and 3D model files; the removal is committed and pushed.
 
-All upstream JLCImport-Imp features (project/global library import, KiCad 8/9/10, CLI, GUI, TUI) are preserved.
+### Smart dedupe and similarity surfacing
+- **Strict exact-match detection.** Before download, the plugin checks for an existing part by symbol name, by LCSC C-number (also looking inside the `(property "LCSC" …)` field of each `.kicad_sym` — important for connectors whose canonical name is the MPN, not the C-number), and by parsed spec.
+- **"Part already in library!" dialog.** When an exact match is found, a dedicated info dialog pops up with two clear choices: `Cancel import` (default) or `Import Anyways (overwrite)`. The overwrite path bypasses dedupe and rewrites the existing files in-place.
+- **Side-by-side similar-parts popup.** When no exact match exists but near matches do (same value within 1 %, configurable up to 3 candidates), a structured comparison popup shows each candidate next to the new part with `✓` / `✗` markers on every spec row.
+- **Generalized spec parser.** Caps, resistors, inductors, LEDs, transistors, and connectors each get a kind-specific table — caps show Value/Voltage/Dielectric/Tolerance/Size; resistors show Value/Size/Tolerance/Power; LEDs show Color/Size; etc.
+- **MPN-aware cap spec parsing.** When JLCPCB's description lacks specs, the plugin decodes the manufacturer part number (IEC 60062 three-digit value codes like `101` → 100 pF, voltage codes like `500` → 50 V, `6R3` → 6.3 V, tolerance letters `F`=±1 % / `J`=±5 % / etc., dielectric codes `X7R`/`C0G`/`X5R`) so dedupe still works on generic descriptions.
+- **JLC Basic-tier highlighting in lib.** When importing an Extended part, any same-spec Basic-tier alternative already in `imp-kicad-lib` is ranked to the top of the popup with a `⚠ Basic alternative` badge.
+- **Live JLCPCB Basic-tier query.** For Extended imports, the plugin also queries the JLCPCB search API filtered to `componentLibraryType=base`, parses each result's spec, and shows any same-spec Basic part (with LCSC code, name, price, stock) in a dedicated dialog with `Cancel — use Basic instead` / `Import Extended anyway` so you can switch before paying assembly fees.
+
+### Library normalization on write
+- **Reference designators.** `R`/`C`/`L`/`D`/`Q`/`SW`/`J` set automatically from detected kind.
+- **Hidden Value on passives** with a correctly-placed `(hide yes)` flag that survives KiCad 10's nested `(at …)` / `(effects …)` blocks (an early version of this fix mangled freshly-imported symbols — fixed in v1.8.1).
+- **Purple `_1_1` annotation.** A short value tag (`100nF/50V/X7R`, `6.8k`, `3.9uH`, `Green LED 0603`) is injected at color `163 59 255 1`, size 1.27, above the symbol body so the schematic stays readable when Value is hidden.
+- **Footprint property prefix.** Set to `<Category>__C:<footprint name>` so KiCad resolves it through the `__C` lib-table entries instead of the project library.
+- **3D model paths rewritten.** `(model …)` paths point at `../../packages3d/<Cat>__C.3dshapes/<part>.step` so the model resolves from the shared-lib root regardless of which project the footprint is used in.
+
+![Search and details](images/search_results.png)
 
 ![Search and details](images/search_results.png)
 
