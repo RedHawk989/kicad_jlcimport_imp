@@ -96,6 +96,24 @@ def _all_category_dirs(imp_lib_path: str) -> list:
     return out
 
 
+_LCSC_PROP_RE = re.compile(r'\(property\s+"LCSC"\s+"(C\d+)"')
+
+
+def _lcsc_codes_in_file(path: str) -> set:
+    """Return every LCSC C-number referenced anywhere in a .kicad_sym file.
+
+    Catches LCSC stored as a dedicated ``(property "LCSC" "Cxxx")`` field
+    even when neither the symbol name nor the Description contains it
+    (common for connectors whose canonical name is the manufacturer MPN).
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return set()
+    return set(_LCSC_PROP_RE.findall(text)) | set(_LCSC_RE.findall(text))
+
+
 def _iter_symbols_in_dir(sym_dir: str):
     if not os.path.isdir(sym_dir):
         return
@@ -143,8 +161,10 @@ def _find_by_name(imp_lib_path: str, part_name: str):
 
 def _find_by_lcsc(imp_lib_path: str, lcsc_code: str):
     for cat, sym_dir in _all_category_dirs(imp_lib_path):
-        for _path, name, desc in _iter_symbols_in_dir(sym_dir):
+        for path, name, desc in _iter_symbols_in_dir(sym_dir):
             if lcsc_code in (desc or "") or lcsc_code in name:
+                return cat, name
+            if lcsc_code in _lcsc_codes_in_file(path):
                 return cat, name
     return None
 
@@ -157,6 +177,7 @@ def find_similar(
     value_tol: float = 0.01,
     max_results: int = 3,
     new_tier: str = "",
+    lcsc_code: str = "",
 ) -> list:
     """Return a list of NEAR matches in imp-kicad-lib.
 
@@ -194,10 +215,13 @@ def find_similar(
 
     # LCSC code match anywhere
     lcsc_codes = set(_LCSC_RE.findall(part_name or "")) | set(_LCSC_RE.findall(new_description or ""))
+    if lcsc_code:
+        lcsc_codes.add(lcsc_code)
     if lcsc_codes:
         for cat, sym_dir in _all_category_dirs(imp_lib_path):
-            for _path, name, desc in _iter_symbols_in_dir(sym_dir):
-                if any(c in (desc or "") or c in name for c in lcsc_codes):
+            for path, name, desc in _iter_symbols_in_dir(sym_dir):
+                file_lcscs = _lcsc_codes_in_file(path)
+                if any(c in (desc or "") or c in name or c in file_lcscs for c in lcsc_codes):
                     if not any(c["name"] == name and c["category"] == cat for c in candidates):
                         candidates.append(
                             {
@@ -369,6 +393,7 @@ def find_match(
     category: str,
     new_description: str,
     part_name: str = "",
+    lcsc_code: str = "",
 ) -> dict | None:
     """Look for a same-spec or exact-identity match.
 
@@ -384,6 +409,8 @@ def find_match(
 
     # 2) LCSC C-number identity
     lcsc_codes = set(_LCSC_RE.findall(part_name)) | set(_LCSC_RE.findall(new_description or ""))
+    if lcsc_code:
+        lcsc_codes.add(lcsc_code)
     for code in lcsc_codes:
         hit = _find_by_lcsc(imp_lib_path, code)
         if hit:

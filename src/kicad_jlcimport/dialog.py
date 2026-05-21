@@ -2794,6 +2794,7 @@ class JLCImportImpDialog(wx.Dialog):
 
         part_name = sanitize_name(r.get("model", "") or "")
         description = r.get("description", "") or ""
+        lcsc_code = (r.get("lcsc", "") or "").strip()
         # JLC tier of the part being imported (Basic / Extended) from the
         # search-result type column.
         new_tier_raw = (r.get("type", "") or "").strip().lower()
@@ -2813,7 +2814,7 @@ class JLCImportImpDialog(wx.Dialog):
         # (same name / same LCSC / same spec) show a dedicated dialog
         # offering Cancel (default) or Import Anyways (overwrite).
         try:
-            exact = find_match(imp_lib, category, description, part_name=part_name)
+            exact = find_match(imp_lib, category, description, part_name=part_name, lcsc_code=lcsc_code)
         except Exception as exc:  # noqa: BLE001
             self._log(f"imp-kicad-lib: exact-match check failed (ignored): {exc}")
             exact = None
@@ -2846,7 +2847,9 @@ class JLCImportImpDialog(wx.Dialog):
                 dlg.Destroy()
 
         try:
-            candidates = find_similar(imp_lib, category, description, part_name=part_name, new_tier=new_tier)
+            candidates = find_similar(
+                imp_lib, category, description, part_name=part_name, new_tier=new_tier, lcsc_code=lcsc_code
+            )
         except Exception as exc:  # noqa: BLE001
             self._log(f"imp-kicad-lib: similar-parts check failed (ignored): {exc}")
             return True

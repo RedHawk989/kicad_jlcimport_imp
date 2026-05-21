@@ -601,6 +601,7 @@ def _import_to_library(
             log=log,
             easyeda_category=(comp or {}).get("category", "") if isinstance(comp, dict) else "",
             force_overwrite=imp_lib_force_overwrite,
+            lcsc_code=lcsc_id or "",
         )
     except Exception as exc:  # noqa: BLE001 - never block import on shared-lib failure
         log(f"imp-kicad-lib: integration error (ignored): {exc}")
