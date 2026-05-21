@@ -2758,9 +2758,19 @@ class JLCImportImpDialog(wx.Dialog):
 
         part_name = sanitize_name(r.get("model", "") or "")
         description = r.get("description", "") or ""
+        # JLC tier of the part being imported (Basic / Extended) from the
+        # search-result type column.
+        new_tier_raw = (r.get("type", "") or "").strip().lower()
+        if "basic" in new_tier_raw:
+            new_tier = "basic"
+        elif "extended" in new_tier_raw or "preferred" in new_tier_raw:
+            new_tier = "extended"
+        else:
+            new_tier = ""
+
         category = categorize(part_name, description, "")
         try:
-            candidates = find_similar(imp_lib, category, description, part_name=part_name)
+            candidates = find_similar(imp_lib, category, description, part_name=part_name, new_tier=new_tier)
         except Exception as exc:  # noqa: BLE001
             self._log(f"imp-kicad-lib: similar-parts check failed (ignored): {exc}")
             return True
@@ -2768,15 +2778,26 @@ class JLCImportImpDialog(wx.Dialog):
         if not candidates:
             return True
 
+        has_basic_alt = any(c.get("tier") == "basic" for c in candidates) and new_tier != "basic"
+        header_tier = f" [JLC {new_tier.title()}]" if new_tier else ""
         lines = [
-            f"You are about to import '{part_name}' ({description}).",
-            "",
-            f"imp-kicad-lib already contains {len(candidates)} similar part(s):",
+            f"You are about to import '{part_name}'{header_tier}",
+            f"({description})",
             "",
         ]
+        if has_basic_alt:
+            lines.append(
+                "⚠ A JLC Basic-tier alternative already exists in imp-kicad-lib — "
+                "Basic parts are cheaper to assemble at JLCPCB than Extended ones."
+            )
+            lines.append("")
+        lines.append(f"imp-kicad-lib already contains {len(candidates)} similar part(s):")
+        lines.append("")
         for c in candidates:
+            tier = c.get("tier", "other")
+            tier_tag = {"basic": " [JLC Basic]", "extended": " [JLC Extended]"}.get(tier, "")
             diff = ", ".join(c.get("diffs", []) or ["near match"])
-            lines.append(f"  • {c['category']}__C : {c['name']}")
+            lines.append(f"  • {c['category']}__C : {c['name']}{tier_tag}")
             lines.append(f"      {c.get('description', '')}")
             lines.append(f"      differences: {diff}")
             lines.append("")

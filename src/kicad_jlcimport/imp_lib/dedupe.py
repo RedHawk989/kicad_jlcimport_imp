@@ -31,6 +31,22 @@ _RELATED = {
     "Extended_Capacitors_Resistors": ("Basic_Capacitors_Resistors", "Capacitor_SMD"),
 }
 
+# JLCPCB assembly tier inferred from the imp-kicad-lib category name.  Used to
+# surface "a Basic-tier alternative exists" in the similar-parts popup so users
+# don't accidentally import an Extended part when a same-spec Basic one is
+# already in the shared library.
+_BASIC_CATEGORIES = {"Basic_Capacitors_Resistors"}
+_EXTENDED_CATEGORIES = {"Extended_Capacitors_Resistors", "Capacitor_SMD"}
+
+
+def category_tier(category: str) -> str:
+    """Return ``"basic"``, ``"extended"``, or ``"other"`` for an imp-kicad-lib category."""
+    if category in _BASIC_CATEGORIES:
+        return "basic"
+    if category in _EXTENDED_CATEGORIES:
+        return "extended"
+    return "other"
+
 
 def _all_category_dirs(imp_lib_path: str) -> list:
     sym_root = os.path.join(imp_lib_path, "symbols")
@@ -103,6 +119,7 @@ def find_similar(
     part_name: str = "",
     value_tol: float = 0.05,
     max_results: int = 12,
+    new_tier: str = "",
 ) -> list:
     """Return a list of NEAR matches in imp-kicad-lib.
 
@@ -137,6 +154,7 @@ def find_similar(
                         "category": cat,
                         "description": desc,
                         "diffs": ["same part name"],
+                        "tier": category_tier(cat),
                         "_rank": 0,
                     }
                 )
@@ -154,6 +172,7 @@ def find_similar(
                                 "category": cat,
                                 "description": desc,
                                 "diffs": ["same LCSC code"],
+                                "tier": category_tier(cat),
                                 "_rank": 1,
                             }
                         )
@@ -173,13 +192,21 @@ def find_similar(
         value_dist, diff_strs = diffs
         if value_dist > value_tol:
             continue
+        cand_tier = category_tier(cat)
+        # When importing an Extended (or Other) part, surface Basic-tier
+        # alternatives at the very top — they're cheaper to assemble at JLC.
+        rank = 2 + value_dist
+        if cand_tier == "basic" and new_tier in ("extended", "other", ""):
+            rank = 0.5 + value_dist
+            diff_strs = ["JLC Basic alternative", *diff_strs]
         candidates.append(
             {
                 "name": name,
                 "category": cat,
                 "description": desc,
                 "diffs": diff_strs,
-                "_rank": 2 + value_dist,  # closer values sort earlier
+                "tier": cand_tier,
+                "_rank": rank,
             }
         )
 
