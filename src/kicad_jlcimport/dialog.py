@@ -2846,6 +2846,55 @@ class JLCImportImpDialog(wx.Dialog):
             finally:
                 dlg.Destroy()
 
+        # Live JLCPCB Basic-tier alternative check — only meaningful for Extended
+        # imports.  Network failures are silent; the check never blocks.
+        if new_tier == "extended":
+            try:
+                from .imp_lib.jlc_alt import find_jlc_basic_alternatives
+
+                self._log("imp-kicad-lib: querying JLCPCB for same-spec Basic alternatives...")
+                basic_alts = find_jlc_basic_alternatives(description, part_name=part_name)
+            except Exception as exc:  # noqa: BLE001
+                self._log(f"imp-kicad-lib: JLCPCB Basic-alt check failed (ignored): {exc}")
+                basic_alts = []
+            if basic_alts:
+                self._log(f"imp-kicad-lib: JLCPCB has {len(basic_alts)} same-spec Basic part(s)")
+                lines = [
+                    "A cheaper JLC Basic-tier alternative exists on JLCPCB!",
+                    "",
+                    f"You are about to import '{part_name}' (Extended).",
+                    "",
+                    "Same-spec Basic parts available on JLCPCB:",
+                    "",
+                ]
+                for alt in basic_alts:
+                    price = alt.get("price")
+                    price_str = f"  ${price:.4f}" if isinstance(price, (int, float)) else ""
+                    stock = alt.get("stock")
+                    stock_str = f"  stock {stock}" if stock else ""
+                    lines.append(f"  - {alt.get('lcsc', '')}  {alt.get('name', '')}{price_str}{stock_str}")
+                    alt_desc = (alt.get("description") or "")[:90]
+                    if alt_desc:
+                        lines.append(f"      {alt_desc}")
+                lines.append("")
+                lines.append("Cancel and search for one of these, or import the Extended part anyway?")
+                dlg = wx.MessageDialog(
+                    self,
+                    "\n".join(lines),
+                    "Basic-tier alternative found on JLCPCB",
+                    wx.YES_NO | wx.ICON_INFORMATION | wx.NO_DEFAULT,
+                )
+                try:
+                    dlg.SetYesNoLabels("Import Extended anyway", "Cancel — use Basic instead")
+                    if dlg.ShowModal() != wx.ID_YES:
+                        self._log("imp-kicad-lib: import cancelled — user will switch to Basic part")
+                        return False
+                    self._log("imp-kicad-lib: user chose to keep the Extended part")
+                finally:
+                    dlg.Destroy()
+            else:
+                self._log("imp-kicad-lib: no same-spec Basic alternative on JLCPCB")
+
         try:
             candidates = find_similar(
                 imp_lib, category, description, part_name=part_name, new_tier=new_tier, lcsc_code=lcsc_code

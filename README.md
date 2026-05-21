@@ -104,6 +104,7 @@ Text is rendered in purple (`color 163 59 255 1`) at size 1.27, placed above the
 
 ## Recent updates
 
+- `v1.10.0`: live JLCPCB Basic-tier check before each Extended import — queries JLCPCB for same-spec Basic parts and surfaces them in a popup with `Cancel — use Basic instead` / `Import Extended anyway`.
 - `v1.9.3`: match by LCSC C-number even when it only appears inside the `(property "LCSC" …)` field of the `.kicad_sym` (common for connectors whose canonical name is the manufacturer MPN).
 - `v1.9.2`: dedicated *Part already in library!* dialog for exact matches, with `Cancel` (default) / `Import Anyways (overwrite)` choice.
 - `v1.9.1`: fix duplicate / double `__C` entries in the similar-parts popup.
