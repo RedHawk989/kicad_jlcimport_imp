@@ -1,4 +1,4 @@
-# JLCImport (imp fork)
+# JLCImport-Imp
 
 Fork of [`jvanderberg/kicad_jlcimport`](https://github.com/jvanderberg/kicad_jlcimport) that auto-integrates with the [`impossible-inc/imp-kicad-lib`](https://github.com/impossible-inc/imp-kicad-lib) shared component library.
 
@@ -24,9 +24,9 @@ All upstream JLCImport features (project/global library import, KiCad 8/9/10, CL
    ```
 
 3. Refresh repositories
-4. Install **JLCImport (imp fork)**
+4. Install **JLCImport-Imp**
 
-Fallback: install from ZIP via [Releases](https://github.com/RedHawk989/kicad_jlcimport_imp/releases) (`JLCImport-vX.X.X.zip`, not "Source code" ZIP).
+Fallback: install from ZIP via [Releases](https://github.com/RedHawk989/kicad_jlcimport_imp/releases) (`JLCImport-Imp-vX.X.X.zip`, not "Source code" ZIP).
 
 For local development, link `src/kicad_jlcimport` into your KiCad plugin directory and restart KiCad.
 
@@ -99,6 +99,7 @@ Text is rendered in purple (`color 163 59 255 1`) at size 1.27, placed above the
 
 ## Recent updates
 
+- `v1.7.1`: rename plugin to `JLCImport-Imp` (PCM listing, ZIP filename).
 - `v1.7.0`: imp-kicad-lib integration — auto-detect submodule, categorize, strict same-spec dedupe, reformat to match lib conventions (`100nF/50V/X7R` annotation, hidden Value, correct Reference), commit + push.
 - `v1.6.7` (upstream): normalize tiny EasyEDA geometry residuals to common metric/imperial grids.
 - `v1.6.5` (upstream): global search falls back to a constructed `lcsc.com/product-detail/<code>.html` URL when the JLCPCB API omits `lcscGoodsUrl`.

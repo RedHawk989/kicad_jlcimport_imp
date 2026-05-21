@@ -1,6 +1,6 @@
 {
   "$schema": "https://go.kicad.org/pcm/schemas/v1",
-  "name": "JLCImport (imp fork)",
+  "name": "JLCImport-Imp",
   "description": "KiCad plugin to import JLCPCB/LCSC parts, auto-contributing to imp-kicad-lib with naming conventions and dedupe.",
   "description_full": "Fork of jvanderberg/kicad_jlcimport that integrates with the impossible-inc/imp-kicad-lib shared component library: discovers the lib as a project submodule, categorizes parts, reformats symbols to match the lib's conventions (proper Reference, hidden Value, purple _1_1 value annotation), checks for same-spec duplicates before writing, and optionally commits+pushes new parts to the shared library.",
   "identifier": "com.github.redhawk989.kicad-jlcimport-imp",
@@ -19,7 +19,7 @@
   },
   "versions": [
     {
-      "version": "1.7.0",
+      "version": "1.7.1",
       "status": "stable",
       "kicad_version": "8.0",
       "runtime": "swig"

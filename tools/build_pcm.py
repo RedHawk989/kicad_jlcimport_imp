@@ -231,9 +231,9 @@ def main() -> None:
     if args.zip_name:
         zip_name = args.zip_name
     elif tag:
-        zip_name = f"JLCImport-{tag}.zip"
+        zip_name = f"JLCImport-Imp-{tag}.zip"
     else:
-        zip_name = "JLCImport-dev.zip"
+        zip_name = "JLCImport-Imp-dev.zip"
     zip_path = os.path.join(args.output_dir, zip_name)
 
     metadata_for_zip = None
