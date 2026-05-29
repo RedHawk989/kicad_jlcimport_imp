@@ -571,6 +571,7 @@ def _import_to_library(
     except Exception:  # noqa: BLE001
         imp_lib_primary = False
 
+    reopen_required = False
     if imp_lib_primary:
         log("imp-lib-primary: skipping project lib-table update (project already references __C libraries)")
     elif use_global:
@@ -580,6 +581,7 @@ def _import_to_library(
         newly_created = update_project_lib_tables(lib_dir, lib_name)
         log("Project library tables updated.")
         if newly_created:
+            reopen_required = True
             log("NOTE: Reopen project for new library tables to take effect.")
 
     # imp-kicad-lib contribution (no-op when the shared library is not detected)
@@ -630,6 +632,7 @@ def _import_to_library(
         "fp_content": fp_content,
         "sym_content": sym_content,
         "imp_lib_result": contrib,
+        "reopen_required": reopen_required,
     }
 
 
