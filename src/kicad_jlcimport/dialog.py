@@ -1544,6 +1544,24 @@ class JLCImportImpDialog(wx.Dialog):
         import_box.Add(lib_name_sizer, 0, wx.ALL, 5)
         self._update_version_visibility()
 
+        # Row 4: imp-kicad-lib contribution toggle
+        imp_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.imp_lib_checkbox = wx.CheckBox(panel, label="Share to imp-kicad-lib")
+        self.imp_lib_checkbox.SetValue(_config.get("imp_lib_enabled", True))
+        self.imp_lib_checkbox.SetToolTip(
+            "When on, imported parts are also contributed to the shared imp-kicad-lib "
+            "(found via a git submodule or the imp_lib_path config key).\n"
+            "When off — or when no shared library is found — parts are imported only "
+            "into the local Project/Global library selected above."
+        )
+        self.imp_lib_checkbox.Bind(wx.EVT_CHECKBOX, self._on_imp_lib_toggle)
+        imp_row.Add(self.imp_lib_checkbox, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+        self._imp_lib_status = wx.StaticText(panel, label="")
+        self._imp_lib_status.SetFont(panel.GetFont().Italic())
+        imp_row.Add(self._imp_lib_status, 0, wx.ALIGN_CENTER_VERTICAL)
+        import_box.Add(imp_row, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        self._refresh_imp_lib_status()
+
         vbox.Add(import_box, 0, wx.EXPAND | wx.ALL, 5)
 
         # --- Status log ---
@@ -1676,6 +1694,46 @@ class JLCImportImpDialog(wx.Dialog):
         elif not new_name:
             self.lib_name_input.SetValue(self._lib_name)
         event.Skip()
+
+    def _on_imp_lib_toggle(self, event):
+        """Persist the imp-kicad-lib master switch and refresh the status hint."""
+        config = load_config()
+        config["imp_lib_enabled"] = self.imp_lib_checkbox.GetValue()
+        save_config(config)
+        self._refresh_imp_lib_status()
+        event.Skip()
+
+    def _refresh_imp_lib_status(self):
+        """Update the inline hint next to the imp-kicad-lib checkbox.
+
+        Communicates the effective destination so the user can tell, at a
+        glance, whether parts will be shared or imported purely locally.
+        """
+        if getattr(self, "_imp_lib_status", None) is None:
+            return
+        if not self.imp_lib_checkbox.GetValue():
+            self._imp_lib_status.SetLabel("— importing to local library only")
+            self._imp_lib_status.SetToolTip("")
+            self._imp_lib_status.GetParent().Layout()
+            return
+        detected = None
+        try:
+            from .imp_lib import find_imp_lib
+
+            cfg = load_config()
+            detected = find_imp_lib(self._get_project_dir() or "", fallback_path=cfg.get("imp_lib_path", ""))
+        except Exception:  # noqa: BLE001
+            detected = None
+        if detected:
+            self._imp_lib_status.SetLabel("— shared library detected")
+            self._imp_lib_status.SetToolTip(detected)
+        else:
+            self._imp_lib_status.SetLabel("— no shared library found, importing locally")
+            self._imp_lib_status.SetToolTip(
+                "No git submodule referencing imp-kicad-lib was found above the project, "
+                "and imp_lib_path is unset. Parts will go to the local library only."
+            )
+        self._imp_lib_status.GetParent().Layout()
 
     def _update_version_visibility(self):
         """Show KiCad version dropdown only when using the default 3rd-party directory."""
