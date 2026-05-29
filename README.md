@@ -122,6 +122,7 @@ Text is rendered in purple (`color 163 59 255 1`) at size 1.27, placed above the
 
 ## Recent updates
 
+- `v1.11.1`: prominent "reopen project" popup after the first import into a project — KiCad only loads a project's library tables at open, so a freshly created `JLCImport` library stays invisible in Place Symbol until the project is reopened. The plugin now says so explicitly instead of burying it in the log.
 - `v1.11.0`: **Share to imp-kicad-lib** checkbox in the import dialog — toggle shared-library contribution on/off without editing `jlcimport.json`, with an inline hint showing whether a shared lib was detected or parts will import locally only.
 - `v1.10.0`: live JLCPCB Basic-tier check before each Extended import — queries JLCPCB for same-spec Basic parts and surfaces them in a popup with `Cancel — use Basic instead` / `Import Extended anyway`.
 - `v1.9.3`: match by LCSC C-number even when it only appears inside the `(property "LCSC" …)` field of the `.kicad_sym` (common for connectors whose canonical name is the manufacturer MPN).
