@@ -3085,6 +3085,21 @@ class JLCImportImpDialog(wx.Dialog):
             self._refresh_imported_ids()
             self._repopulate_results()
             self._persist_destination()
+            if result.get("reopen_required"):
+                self._log(
+                    f"\n*** ACTION NEEDED: the '{self._lib_name}' library table was just created. "
+                    "Close and reopen the project (or KiCad) for the new symbol to appear in "
+                    "Place Symbol / the footprint chooser. ***"
+                )
+                wx.MessageBox(
+                    f"'{title}' was imported into the project library '{self._lib_name}'.\n\n"
+                    "KiCad only loads a project's library tables when the project opens, and "
+                    f"the '{self._lib_name}' table was just created. Close and reopen the "
+                    "project (or restart KiCad) and the new symbol will appear in Place Symbol.",
+                    "Reopen project to see the new library",
+                    wx.OK | wx.ICON_INFORMATION,
+                    self,
+                )
 
     def _on_import_error(self, msg):
         """Main thread: handle import error."""
