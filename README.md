@@ -79,7 +79,9 @@ The lib is discovered by:
 
 1. Walking up from the active KiCad project looking for a `.gitmodules` entry whose URL contains `imp-kicad-lib`.
 2. If not found, falling back to `imp_lib_path` if set.
-3. Otherwise, the integration silently does nothing — you still get the normal project-library import.
+3. Otherwise, the integration does nothing — you still get the normal local project (or global) library import.
+
+The import dialog has a **Share to imp-kicad-lib** checkbox (bound to `imp_lib_enabled`). Its inline hint shows the effective destination at a glance — whether a shared library was detected, or parts will be imported to the local library only. Uncheck it to force a purely local import without touching `jlcimport.json`.
 
 ## Companion: live JLCPCB lookups
 
@@ -120,6 +122,7 @@ Text is rendered in purple (`color 163 59 255 1`) at size 1.27, placed above the
 
 ## Recent updates
 
+- `v1.11.0`: **Share to imp-kicad-lib** checkbox in the import dialog — toggle shared-library contribution on/off without editing `jlcimport.json`, with an inline hint showing whether a shared lib was detected or parts will import locally only.
 - `v1.10.0`: live JLCPCB Basic-tier check before each Extended import — queries JLCPCB for same-spec Basic parts and surfaces them in a popup with `Cancel — use Basic instead` / `Import Extended anyway`.
 - `v1.9.3`: match by LCSC C-number even when it only appears inside the `(property "LCSC" …)` field of the `.kicad_sym` (common for connectors whose canonical name is the manufacturer MPN).
 - `v1.9.2`: dedicated *Part already in library!* dialog for exact matches, with `Cancel` (default) / `Import Anyways (overwrite)` choice.
