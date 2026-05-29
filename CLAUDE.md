@@ -137,8 +137,61 @@ git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-The `v*` tag push triggers `.github/workflows/release.yml` which builds binaries, PCM package, and creates the GitHub release automatically.
+### 6a. ⚠️ THIS REPO IS A FORK — GitHub Actions DOES NOT RUN. Publish the release manually.
+
+`RedHawk989/kicad_jlcimport_imp` is a fork of `jvanderberg/kicad_jlcimport`. GitHub disables
+Actions on forks until someone clicks "enable" once in the web Actions tab. The REST API still
+reports `"enabled": true`, so **do not trust that** — confirm with the runs count:
+`GET /repos/RedHawk989/kicad_jlcimport_imp/actions/runs` returns `total_count: 0` (no run has
+ever executed here). The `v*` tag push therefore triggers **nothing**: it does NOT build binaries
+and does NOT create the release. Every existing release (v1.9.x, v1.10.0, …) was published by hand
+with the steps below, and you must do the same.
+
+Also: **`gh` CLI is not installed** on this machine. Use the GitHub REST API with the token from
+the stored git credential — it is a classic PAT with `repo` + `workflow` scope:
+
+```bash
+TOKEN=$(printf 'protocol=https\nhost=github.com\n\n' | git credential fill 2>/dev/null | sed -n 's/^password=//p')
+REPO="RedHawk989/kicad_jlcimport_imp"
+```
+
+This same token/API approach replaces the `gh pr ...` commands in step 3 (create PR via
+`POST /repos/$REPO/pulls`, merge via `PUT /repos/$REPO/pulls/<n>/merge` with `{"merge_method":"squash"}`,
+delete branch via `DELETE /repos/$REPO/git/refs/heads/<branch>`).
+
+**Build the PCM artifacts locally** (pure Python, platform-independent — this is all KiCad needs;
+the PyInstaller standalone binaries from the matrix can't be built on one OS and are not required
+for the plugin update):
+
+```bash
+python tools/build_pcm.py --tag vX.Y.Z --github-repo "$REPO" --output-dir .
+# produces: JLCImport-Imp-vX.Y.Z.zip, packages.json, repository.json, resources.zip
+```
+
+**Create the release and upload all four assets** (KiCad's PCM repo URL resolves
+`releases/latest/download/repository.json`, so the latest release MUST carry these four files —
+match exactly what prior releases attach):
+
+```bash
+# create release (draft:false, prerelease:false so it becomes "latest")
+curl -s -X POST -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/$REPO/releases" \
+  -d "$(jq -n --arg tag vX.Y.Z --arg body "$NOTES" '{tag_name:$tag,name:$tag,body:$body,draft:false,prerelease:false}')"
+# upload each asset (.zip -> application/zip, .json -> application/json) to release id <REL_ID>:
+curl -s -X POST -H "Authorization: token $TOKEN" -H "Content-Type: application/zip" \
+  --data-binary @JLCImport-Imp-vX.Y.Z.zip \
+  "https://uploads.github.com/repos/$REPO/releases/<REL_ID>/assets?name=JLCImport-Imp-vX.Y.Z.zip"
+```
+
+Then `rm` the four build artifacts from the working tree (they are not gitignored).
 
 ### 7. Verify
 
-Confirm the release workflow started: `gh run list --workflow=release.yml --limit=1`
+The tag push triggers no workflow, so verify the **release** directly, not a run:
+
+```bash
+curl -s "https://api.github.com/repos/$REPO/releases/latest" | jq '{tag_name, assets:[.assets[].name]}'
+# must show vX.Y.Z with all 4 assets
+curl -sL "https://github.com/$REPO/releases/latest/download/packages.json" | jq -r '.packages[0].versions[0].version'
+# must print X.Y.Z — this is what KiCad's PCM reads
+```
